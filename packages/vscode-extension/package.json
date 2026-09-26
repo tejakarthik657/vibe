@@ -1,0 +1,45 @@
+{
+  "name": "vibe-vscode",
+  "displayName": "VIBE — Engineering Intelligence",
+  "description": "See requirements, decisions and AI-change risk for the current project, powered by the VIBE CLI.",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": [
+    "workspaceContains:.vibe/state.json"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "vibe.scan", "title": "VIBE: Scan Project" },
+      { "command": "vibe.doctor", "title": "VIBE: Run Doctor" },
+      { "command": "vibe.guard", "title": "VIBE: Guard Current Changes" },
+      { "command": "vibe.drift", "title": "VIBE: Check Architecture Drift" },
+      { "command": "vibe.checkpoint", "title": "VIBE: Create Checkpoint" },
+      { "command": "vibe.addRequirement", "title": "VIBE: Add Requirement" },
+      { "command": "vibe.addDecision", "title": "VIBE: Add Decision" },
+      { "command": "vibe.refresh", "title": "VIBE: Refresh Sidebar" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "vibe", "title": "VIBE", "icon": "resources/icon.svg" }
+      ]
+    },
+    "views": {
+      "vibe": [
+        { "id": "vibeRequirements", "name": "Requirements" },
+        { "id": "vibeDecisions", "name": "Decisions" },
+        { "id": "vibeConstraints", "name": "Constraints" },
+        { "id": "vibeTasks", "name": "Tasks" }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "vibe-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @vibe/core && npm run build -w vibe",
+    "clean": "node -e \"const fs = require('fs'); ['packages/core/dist', 'packages/cli/dist', 'packages/vscode-extension/dist'].forEach(d => fs.rmSync(d, { recursive: true, force: true })); console.log('✔ Cleaned build directories.');\""
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.0"
+  }
+}
