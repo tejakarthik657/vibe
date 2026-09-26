@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, addTask, setTaskStatus, listTasks, Task } from "@vibe/core";
+import { VibeStore, addTask, setTaskStatus, listTasks, Task } from "vibe-dev-core";
 
 const STATUS_ICON: Record<Task["status"], string> = {
   todo: "○",

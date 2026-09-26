@@ -1,0 +1,19 @@
+{
+  "name": "vibe-dev-decision-core",
+  "version": "0.1.1",
+  "description": "VIBE Decision Intelligence Core Types & Contracts by DevFrames",
+  "author": "DevFrames",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.5.4"
+  }
+}

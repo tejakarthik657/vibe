@@ -3,10 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/decision-providers/*"
   ],
   "scripts": {
-    "build": "npm run build -w vibe-dev-core && npm run build -w vibe-dev",
+    "build": "npm run build -w vibe-dev-decision-core && npm run build -w vibe-dev-policy-engine && npm run build -w vibe-dev-provider-rules && npm run build -w vibe-dev-core && npm run build -w vibe-dev",
     "clean": "node -e \"const fs = require('fs'); ['packages/core/dist', 'packages/cli/dist', 'packages/vscode-extension/dist'].forEach(d => fs.rmSync(d, { recursive: true, force: true })); console.log('✔ Cleaned build directories.');\""
   },
   "devDependencies": {

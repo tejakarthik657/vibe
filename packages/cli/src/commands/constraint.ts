@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, addConstraint, listConstraints, Constraint } from "@vibe/core";
+import { VibeStore, addConstraint, listConstraints, Constraint } from "vibe-dev-core";
 
 const SEVERITY_COLOR: Record<Constraint["severity"], (s: string) => string> = {
   critical: chalk.bgRed.white.bold,
@@ -13,10 +13,20 @@ export function registerConstraint(program: Command) {
 
   cmd
     .command("add [text...]")
+    .allowUnknownOption()
     .description("Add a constraint")
     .option("-s, --severity <severity>", "info | warning | critical", "warning")
     .action((textParts: string[], opts) => {
-      const text = Array.isArray(textParts) ? textParts.join(" ").trim() : String(textParts || "").trim();
+      let parts = Array.isArray(textParts) ? [...textParts] : [String(textParts || "")];
+      let severity = opts.severity || "warning";
+
+      const sIdx = parts.findIndex(p => p === "--severity" || p === "-s");
+      if (sIdx !== -1 && parts[sIdx + 1]) {
+        severity = parts[sIdx + 1];
+        parts.splice(sIdx, 2);
+      }
+
+      const text = parts.join(" ").trim();
       if (!text) {
         console.log(chalk.red("Please provide constraint text. E.g.: vibe con Do not commit API keys"));
         return;
@@ -24,8 +34,8 @@ export function registerConstraint(program: Command) {
       const root = process.cwd();
       const store = new VibeStore(root);
       const state = store.get();
-      const severity = ["info", "warning", "critical"].includes(opts.severity) ? opts.severity : "warning";
-      const constraint = addConstraint(state, text, severity);
+      const validSeverity = ["info", "warning", "critical"].includes(severity) ? severity as Constraint["severity"] : "warning";
+      const constraint = addConstraint(state, text, validSeverity);
       store.set(state);
       store.save();
       console.log(chalk.green(`✔ Added ${constraint.id} [${constraint.severity}]: ${constraint.text}`));

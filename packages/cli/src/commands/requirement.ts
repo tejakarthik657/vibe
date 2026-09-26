@@ -1,16 +1,26 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, addRequirement, linkRequirementToFile, listRequirements } from "@vibe/core";
+import { VibeStore, addRequirement, linkRequirementToFile, listRequirements } from "vibe-dev-core";
 
 export function registerRequirement(program: Command) {
   const cmd = program.command("requirement").alias("req").description("Manage requirements");
 
   cmd
     .command("add [text...]")
+    .allowUnknownOption()
     .description("Add a new requirement")
     .option("-t, --tags <tags>", "Comma separated tags", "")
     .action((textParts: string[], opts) => {
-      const text = Array.isArray(textParts) ? textParts.join(" ").trim() : String(textParts || "").trim();
+      let parts = Array.isArray(textParts) ? [...textParts] : [String(textParts || "")];
+      let tags = opts.tags ? opts.tags.split(",").map((t: string) => t.trim()) : [];
+      
+      const tagIdx = parts.findIndex(p => p === "--tags" || p === "-t");
+      if (tagIdx !== -1 && parts[tagIdx + 1]) {
+        tags = parts[tagIdx + 1].split(",").map((t: string) => t.trim());
+        parts.splice(tagIdx, 2);
+      }
+
+      const text = parts.join(" ").trim();
       if (!text) {
         console.log(chalk.red("Please provide requirement text. E.g.: vibe req add OAuth authentication"));
         return;
@@ -18,11 +28,11 @@ export function registerRequirement(program: Command) {
       const root = process.cwd();
       const store = new VibeStore(root);
       const state = store.get();
-      const tags = opts.tags ? opts.tags.split(",").map((t: string) => t.trim()) : [];
       const req = addRequirement(state, text, tags);
       store.set(state);
       store.save();
       console.log(chalk.green(`✔ Added ${req.id}: ${req.text}`));
+      if (tags.length) console.log(chalk.dim(`  tags: ${tags.join(", ")}`));
     });
 
   cmd

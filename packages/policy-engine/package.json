@@ -1,0 +1,20 @@
+{
+  "name": "vibe-dev-policy-engine",
+  "version": "0.1.1",
+  "description": "VIBE Confidence & Policy Engine by DevFrames",
+  "author": "DevFrames",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "vibe-dev-decision-core": "0.1.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/uuid": "^9.0.8",
+    "typescript": "^5.5.4"
+  }
+}

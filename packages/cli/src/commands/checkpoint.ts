@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, createSnapshot, listSnapshots } from "@vibe/core";
+import { VibeStore, createSnapshot, listSnapshots } from "vibe-dev-core";
 
 export function registerCheckpoint(program: Command) {
   const cmd = program.command("checkpoint").description("Record an engineering health snapshot");

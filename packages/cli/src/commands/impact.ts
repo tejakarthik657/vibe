@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, analyzeImpact } from "@vibe/core";
+import { VibeStore, analyzeImpact } from "vibe-dev-core";
 
 const RISK_COLOR: Record<string, (s: string) => string> = {
   low: chalk.green.bold,

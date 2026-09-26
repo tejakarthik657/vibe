@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, listRequirements, listDecisions, listConstraints, listTasks, computeDrift } from "@vibe/core";
+import { VibeStore, listRequirements, listDecisions, listConstraints, listTasks, computeDrift } from "vibe-dev-core";
 import * as path from "path";
 
 export function registerOnboard(program: Command) {

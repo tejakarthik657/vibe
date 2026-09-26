@@ -1,0 +1,18 @@
+{
+  "name": "vibe-dev-provider-rules",
+  "version": "0.1.1",
+  "description": "VIBE Deterministic Rules Decision Provider by DevFrames",
+  "author": "DevFrames",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "vibe-dev-decision-core": "0.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.4"
+  }
+}

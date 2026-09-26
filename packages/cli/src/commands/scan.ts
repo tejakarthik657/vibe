@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { VibeStore, scanProject, rebuildCodeGraph, recordInferredDecisions } from "@vibe/core";
+import { VibeStore, scanProject, rebuildCodeGraph, recordInferredDecisions } from "vibe-dev-core";
 
 export function registerScan(program: Command) {
   program

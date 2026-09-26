@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, explainModule } from "@vibe/core";
+import { VibeStore, explainModule } from "vibe-dev-core";
 
 export function registerExplain(program: Command) {
   program

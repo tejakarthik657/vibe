@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, runDoctor } from "@vibe/core";
+import { VibeStore, runDoctor } from "vibe-dev-core";
 
 const COLORS: Record<string, (s: string) => string> = {
   critical: chalk.bgRed.white.bold,

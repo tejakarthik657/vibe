@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, traceRequirement } from "@vibe/core";
+import { VibeStore, traceRequirement } from "vibe-dev-core";
 
 export function registerTrace(program: Command) {
   program

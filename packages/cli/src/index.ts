@@ -18,13 +18,15 @@ import { registerExplain } from "./commands/explain";
 import { registerOnboard } from "./commands/onboard";
 import { registerHooks } from "./commands/hooks";
 import { registerBootstrap } from "./commands/bootstrap";
+import { registerDecisionsAudit } from "./commands/decisions";
 
 const program = new Command();
 
 program
   .name("vibe")
+  .allowUnknownOption()
   .description("VIBE — the engineering intelligence layer for AI-assisted development.")
-  .version("0.1.0");
+  .version("0.1.1");
 
 // Foundation
 registerInit(program);
@@ -33,6 +35,7 @@ registerStatus(program);
 registerOnboard(program);
 registerHooks(program);
 registerBootstrap(program);
+registerDecisionsAudit(program);
 
 // Architecture memory
 registerRequirement(program);
@@ -57,7 +60,7 @@ const knownCommands = [
   "init", "scan", "adopt", "status", "requirement", "req", "decision", "adr",
   "context", "trace", "why", "doctor", "guard", "constraint", "con", "task",
   "architect", "drift", "impact", "checkpoint", "explain", "onboard", "welcome",
-  "install-hooks", "hooks", "bootstrap", "help"
+  "install-hooks", "hooks", "bootstrap", "decisions", "help"
 ];
 
 const rawArgs = process.argv.slice(2);

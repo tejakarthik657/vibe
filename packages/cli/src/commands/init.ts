@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import * as path from "path";
 import chalk from "chalk";
-import { VibeStore } from "@vibe/core";
+import { VibeStore } from "vibe-dev-core";
 
 export function registerInit(program: Command) {
   program

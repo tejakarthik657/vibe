@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import * as path from "path";
 import chalk from "chalk";
-import { VibeStore, addConstraint, setDeclaredArchitecture } from "@vibe/core";
+import { VibeStore, addConstraint, setDeclaredArchitecture } from "vibe-dev-core";
 
 const STACK_PRESETS: Record<string, { frameworks: string[]; database?: string; constraints: string[] }> = {
   nextjs: {

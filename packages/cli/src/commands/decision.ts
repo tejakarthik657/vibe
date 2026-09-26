@@ -1,18 +1,28 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, addDecision, listDecisions } from "@vibe/core";
+import { VibeStore, addDecision, listDecisions } from "vibe-dev-core";
 
 export function registerDecision(program: Command) {
   const cmd = program.command("decision").alias("adr").description("Manage architecture decisions");
 
   cmd
     .command("add [title...]")
+    .allowUnknownOption()
     .description("Record a new architecture decision")
     .option("-c, --context <context>", "Why this decision came up", "")
     .option("-d, --decision <decision>", "What was decided", "")
     .option("-q, --consequences <consequences>", "Trade-offs / consequences", "")
     .action((titleParts: string[], opts) => {
-      const title = Array.isArray(titleParts) ? titleParts.join(" ").trim() : String(titleParts || "").trim();
+      let parts = Array.isArray(titleParts) ? [...titleParts] : [String(titleParts || "")];
+      let consequences = opts.consequences || "";
+
+      const qIdx = parts.findIndex(p => p === "--consequences" || p === "-q");
+      if (qIdx !== -1 && parts[qIdx + 1]) {
+        consequences = parts[qIdx + 1];
+        parts.splice(qIdx, 2);
+      }
+
+      const title = parts.join(" ").trim();
       if (!title) {
         console.log(chalk.red("Please provide decision title. E.g.: vibe adr Use Postgres for user database"));
         return;
@@ -22,7 +32,7 @@ export function registerDecision(program: Command) {
       const state = store.get();
       const contextText = opts.context || `Developer decision: ${title}`;
       const decisionText = opts.decision || title;
-      const record = addDecision(state, title, contextText, decisionText, opts.consequences || "", {
+      const record = addDecision(state, title, contextText, decisionText, consequences, {
         source: "developer",
         confidence: 1,
       });

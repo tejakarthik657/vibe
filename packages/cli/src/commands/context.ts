@@ -2,7 +2,7 @@ import { Command } from "commander";
 import * as fs from "fs";
 import * as path from "path";
 import chalk from "chalk";
-import { VibeStore, buildContext, renderAgentsMd } from "@vibe/core";
+import { VibeStore, buildContext, renderAgentsMd } from "vibe-dev-core";
 
 export function registerContext(program: Command) {
   program

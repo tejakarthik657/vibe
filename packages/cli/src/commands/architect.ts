@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, setDeclaredArchitecture, computeDrift } from "@vibe/core";
+import { VibeStore, setDeclaredArchitecture, computeDrift } from "vibe-dev-core";
 
 export function registerArchitect(program: Command) {
   const cmd = program.command("architect").description("Declare and inspect intended architecture");
