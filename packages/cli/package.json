@@ -1,6 +1,6 @@
 {
   "name": "vibe-dev",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "VIBE by DevFrames — Engineering Intelligence Layer for AI-assisted development.",
   "author": "DevFrames",
   "bin": {
@@ -14,7 +14,7 @@
   "dependencies": {
     "vibe-dev-core": "0.1.1",
     "vibe-dev-decision-core": "0.1.1",
-    "vibe-dev-policy-engine": "0.1.1",
+    "vibe-dev-policy-engine": "0.2.0",
     "vibe-dev-provider-rules": "0.1.1",
     "chalk": "^4.1.2",
     "commander": "^12.1.0",

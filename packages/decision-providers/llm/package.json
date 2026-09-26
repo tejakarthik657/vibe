@@ -1,7 +1,7 @@
 {
-  "name": "vibe-dev-policy-engine",
+  "name": "vibe-dev-provider-llm",
   "version": "0.2.0",
-  "description": "VIBE Confidence & Policy Engine by DevFrames",
+  "description": "VIBE Groq & LLM Decision Provider by DevFrames",
   "author": "DevFrames",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,14 +9,10 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "vibe-dev-decision-core": "0.1.1",
-    "vibe-dev-provider-rules": "0.1.1",
-    "vibe-dev-provider-llm": "0.2.0",
-    "uuid": "^9.0.1"
+    "vibe-dev-decision-core": "0.1.1"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
-    "@types/uuid": "^9.0.8",
     "typescript": "^5.5.4"
   }
 }

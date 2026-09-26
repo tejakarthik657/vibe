@@ -3,7 +3,8 @@ import chalk from "chalk";
 import { VibeStore, getWorkingDiff, runGuard, computeDrift } from "vibe-dev-core";
 import { DecisionRequest, Evidence } from "vibe-dev-decision-core";
 import { RuleProvider } from "vibe-dev-provider-rules";
-import { DecisionStore, evaluatePolicy } from "vibe-dev-policy-engine";
+import { DecisionStore, evaluatePolicy, ProviderChain } from "vibe-dev-policy-engine";
+import { getVibeConfig } from "./config";
 
 export function registerGuard(program: Command) {
   program
@@ -67,8 +68,8 @@ export function registerGuard(program: Command) {
         category: driftReport.undeclaredButDetected.length > 0 ? "architecture" : "general",
       };
 
-      const provider = new RuleProvider();
-      const evalResult = await provider.evaluate(decisionReq);
+      const providerChain = new ProviderChain(getVibeConfig(root).groq_api_key || process.env.GROQ_API_KEY);
+      const evalResult = await providerChain.evaluate(decisionReq);
       const decisionStore = new DecisionStore(root);
       const logRecord = decisionStore.logDecision(decisionReq, evalResult);
 
