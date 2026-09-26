@@ -11,6 +11,7 @@ export function registerGuard(program: Command) {
     .command("guard")
     .description("Analyze uncommitted changes for scope, requirement impact and risk")
     .option("-f, --format <format>", "text | md", "text")
+    .option("--no-ai", "Disable AI reasoning and force deterministic RulesProvider evaluation")
     .action(async (opts) => {
       const root = process.cwd();
       if (!VibeStore.exists(root)) {
@@ -68,7 +69,10 @@ export function registerGuard(program: Command) {
         category: driftReport.undeclaredButDetected.length > 0 ? "architecture" : "general",
       };
 
-      const providerChain = new ProviderChain(getVibeConfig(root).groq_api_key || process.env.GROQ_API_KEY);
+      const aiDisabled = opts.ai === false || getVibeConfig(root).ai === "false";
+      const apiKey = aiDisabled ? undefined : getVibeConfig(root).groq_api_key || process.env.GROQ_API_KEY;
+
+      const providerChain = new ProviderChain(apiKey);
       const evalResult = await providerChain.evaluate(decisionReq);
       const decisionStore = new DecisionStore(root);
       const logRecord = decisionStore.logDecision(decisionReq, evalResult);

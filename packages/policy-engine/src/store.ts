@@ -9,16 +9,21 @@ import {
 } from "vibe-dev-decision-core";
 import { evaluatePolicy } from "./policy";
 import { getConfidenceLevel } from "./confidence";
+import { getStorageAdapter, StorageAdapter } from "vibe-dev-storage";
 
 export class DecisionStore {
+  private root: string;
+  private storage: StorageAdapter;
   private logPath: string;
 
   constructor(root: string) {
+    this.root = root;
     const vibeDir = path.join(root, ".vibe");
     if (!fs.existsSync(vibeDir)) {
       fs.mkdirSync(vibeDir, { recursive: true });
     }
     this.logPath = path.join(vibeDir, "decisions.json");
+    this.storage = getStorageAdapter(root);
   }
 
   public getLogs(): DecisionLogRecord[] {
@@ -47,6 +52,10 @@ export class DecisionStore {
 
     logs.push(record);
     fs.writeFileSync(this.logPath, JSON.stringify(logs, null, 2), "utf-8");
+
+    // Persist asynchronously to SQLiteStorageAdapter as well
+    this.storage.logDecision(record as any).catch(() => {});
+
     return record;
   }
 
@@ -73,7 +82,11 @@ export class DecisionStore {
     };
 
     record.override = override;
+    record.resolvedAction = "ALLOW";
     fs.writeFileSync(this.logPath, JSON.stringify(logs, null, 2), "utf-8");
+
+    this.storage.saveOverride(decisionId, { acceptedBy: overrideBy, reason, timestamp: override.timestamp }).catch(() => {});
+
     return record;
   }
 }
