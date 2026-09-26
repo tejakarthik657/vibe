@@ -36,18 +36,18 @@ export function registerHooks(program: Command) {
 
       const hookContent = `#!/bin/sh
 # VIBE Engineering Intelligence pre-commit guard
-echo "🛡️ Running VIBE Pre-commit Guard..."
-npx vibe guard
+echo "[VIBE] Running Pre-commit Guard..."
+npx vibe-engine guard
 if [ $? -ne 0 ]; then
-  echo "❌ VIBE Guard blocked commit due to architectural risk, secrets, or missing coverage."
-  echo "   Run 'vibe guard' to inspect findings or fix issues before committing."
+  echo "[BLOCKED] VIBE Guard blocked commit due to architectural risk, secrets, or missing coverage."
+  echo "          Run 'vibe guard' to inspect findings or fix issues before committing."
   exit 1
 fi
 `;
 
       try {
         fs.writeFileSync(preCommitPath, hookContent, { mode: 0o755, encoding: "utf-8" });
-        console.log(chalk.green("✔ Installed VIBE pre-commit git hook at .git/hooks/pre-commit"));
+        console.log(chalk.green("[OK] Installed VIBE pre-commit git hook at .git/hooks/pre-commit"));
         console.log(chalk.dim("  Every `git commit` will now automatically be guarded against architectural drift & secrets."));
       } catch (err) {
         console.log(chalk.red(`Failed to write git hook: ${err}`));

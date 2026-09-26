@@ -1,6 +1,6 @@
 {
   "name": "vibe-engine",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "VIBE — the engineering intelligence layer for AI-assisted development.",
   "bin": {
     "vibe": "./bin/vibe.js"
@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "vibe-engine-core": "0.1.0",
+    "vibe-engine-core": "0.1.1",
     "chalk": "^4.1.2",
     "commander": "^12.1.0",
     "ora": "^5.4.1"
