@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w vibe-engine-core && npm run build -w vibe-engine",
+    "build": "npm run build -w vibe-dev-core && npm run build -w vibe-dev",
     "clean": "node -e \"const fs = require('fs'); ['packages/core/dist', 'packages/cli/dist', 'packages/vscode-extension/dist'].forEach(d => fs.rmSync(d, { recursive: true, force: true })); console.log('✔ Cleaned build directories.');\""
   },
   "devDependencies": {

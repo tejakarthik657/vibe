@@ -1,6 +1,8 @@
 {
-  "name": "vibe-engine-core",
+  "name": "vibe-dev-core",
   "version": "0.1.1",
+  "description": "VIBE Engine Core by DevFrames — Architectural Graph and Diagnostics Engine.",
+  "author": "DevFrames",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
