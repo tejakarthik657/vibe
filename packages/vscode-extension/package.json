@@ -13,12 +13,23 @@
   "contributes": {
     "commands": [
       { "command": "vibe.scan", "title": "VIBE: Scan Project" },
-      { "command": "vibe.doctor", "title": "VIBE: Run Doctor" },
-      { "command": "vibe.guard", "title": "VIBE: Guard Current Changes" },
+      { "command": "vibe.status", "title": "VIBE: Show Project Status" },
+      { "command": "vibe.doctor", "title": "VIBE: Run Doctor Diagnostics" },
+      { "command": "vibe.guard", "title": "VIBE: Guard Current Changes (Decision Intelligence)" },
+      { "command": "vibe.impact", "title": "VIBE: Analyze File Impact & Blast Radius" },
       { "command": "vibe.drift", "title": "VIBE: Check Architecture Drift" },
       { "command": "vibe.checkpoint", "title": "VIBE: Create Checkpoint" },
+      { "command": "vibe.explain", "title": "VIBE: Explain Architecture Graph" },
+      { "command": "vibe.context", "title": "VIBE: Generate AI Agent Context" },
+      { "command": "vibe.decisions", "title": "VIBE: Show Decision History & Audit Trail" },
+      { "command": "vibe.acceptDecision", "title": "VIBE: Accept & Override Decision" },
+      { "command": "vibe.testProviders", "title": "VIBE: Test Decision Providers Benchmark" },
+      { "command": "vibe.migrateStorage", "title": "VIBE: Migrate Storage to SQLite" },
+      { "command": "vibe.configShow", "title": "VIBE: Show Configuration" },
       { "command": "vibe.addRequirement", "title": "VIBE: Add Requirement" },
-      { "command": "vibe.addDecision", "title": "VIBE: Add Decision" },
+      { "command": "vibe.addDecision", "title": "VIBE: Add Decision (ADR)" },
+      { "command": "vibe.addConstraint", "title": "VIBE: Add Constraint" },
+      { "command": "vibe.addTask", "title": "VIBE: Add Task" },
       { "command": "vibe.refresh", "title": "VIBE: Refresh Sidebar" }
     ],
     "viewsContainers": {

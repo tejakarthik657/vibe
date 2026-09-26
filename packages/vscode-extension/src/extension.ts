@@ -204,16 +204,30 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vibe.refresh", refreshAll),
-
     vscode.commands.registerCommand("vibe.scan", () => runVibe("scan", channel, refreshAll)),
-
+    vscode.commands.registerCommand("vibe.status", () => runVibe("status", channel)),
     vscode.commands.registerCommand("vibe.doctor", () => runVibe("doctor", channel)),
-
     vscode.commands.registerCommand("vibe.guard", () => runVibe("guard", channel)),
-
+    vscode.commands.registerCommand("vibe.impact", async () => {
+      const activeEditor = vscode.window.activeTextEditor;
+      const file = activeEditor ? activeEditor.document.fileName : await vscode.window.showInputBox({ prompt: "File path to analyze impact for" });
+      if (file) runVibe(`impact "${file}"`, channel);
+    }),
     vscode.commands.registerCommand("vibe.drift", () => runVibe("drift", channel)),
-
     vscode.commands.registerCommand("vibe.checkpoint", () => runVibe("checkpoint", channel, refreshAll)),
+    vscode.commands.registerCommand("vibe.explain", () => runVibe("explain", channel)),
+    vscode.commands.registerCommand("vibe.context", () => runVibe("context", channel)),
+    vscode.commands.registerCommand("vibe.decisions", () => runVibe("decisions", channel)),
+    vscode.commands.registerCommand("vibe.acceptDecision", async () => {
+      const decId = await vscode.window.showInputBox({ prompt: "Decision ID to accept (e.g. DEC-004)" });
+      if (!decId) return;
+      const reason = await vscode.window.showInputBox({ prompt: "Reason for override" });
+      if (!reason) return;
+      runVibe(`decision accept ${decId} -r "${reason.replace(/"/g, '\\"')}"`, channel, refreshAll);
+    }),
+    vscode.commands.registerCommand("vibe.testProviders", () => runVibe("test-providers", channel)),
+    vscode.commands.registerCommand("vibe.migrateStorage", () => runVibe("migrate-storage", channel, refreshAll)),
+    vscode.commands.registerCommand("vibe.configShow", () => runVibe("config show", channel)),
 
     vscode.commands.registerCommand("vibe.addRequirement", async () => {
       const text = await vscode.window.showInputBox({ prompt: "Requirement text" });
@@ -230,6 +244,18 @@ export function activate(context: vscode.ExtensionContext) {
       if (decision === undefined) return;
       const args = `decision add "${title.replace(/"/g, '\\"')}" -c "${ctx.replace(/"/g, '\\"')}" -d "${decision.replace(/"/g, '\\"')}"`;
       runVibe(args, channel, refreshAll);
+    }),
+
+    vscode.commands.registerCommand("vibe.addConstraint", async () => {
+      const text = await vscode.window.showInputBox({ prompt: "Constraint text" });
+      if (!text) return;
+      runVibe(`constraint add "${text.replace(/"/g, '\\"')}"`, channel, refreshAll);
+    }),
+
+    vscode.commands.registerCommand("vibe.addTask", async () => {
+      const title = await vscode.window.showInputBox({ prompt: "Task title" });
+      if (!title) return;
+      runVibe(`task add "${title.replace(/"/g, '\\"')}"`, channel, refreshAll);
     })
   );
 }
