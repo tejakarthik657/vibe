@@ -167,7 +167,7 @@ function runVibe(args: string, channel: vscode.OutputChannel, onDone?: () => voi
   channel.show(true);
   channel.appendLine(`$ vibe ${args}`);
   // Prefer a locally installed CLI (npx will resolve node_modules/.bin or fall back to registry)
-  exec(`npx --yes vibe ${args}`, { cwd: root }, (err, stdout, stderr) => {
+  exec(`npx --yes vibe-dev ${args}`, { cwd: root }, (err, stdout, stderr) => {
     if (stdout) channel.append(stdout);
     if (stderr) channel.append(stderr);
     if (err) channel.appendLine(`\n[exit code ${err.code}]`);

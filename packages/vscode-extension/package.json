@@ -3,7 +3,7 @@
   "displayName": "VIBE by DevFrames — Engineering Intelligence",
   "publisher": "devframes",
   "description": "See requirements, decisions and AI-change risk for the current project, powered by VIBE by DevFrames.",
-  "version": "0.1.1",
+  "version": "0.4.0",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
   "activationEvents": [
