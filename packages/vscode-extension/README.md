@@ -1,5 +1,7 @@
 # VIBE by DevFrames — Decision Intelligence for VS Code
 
+![VIBE Cover](resources/icon.jpg)
+
 VIBE is the engineering decision-intelligence layer for AI-assisted development. It transforms deterministic code facts, AST graphs, and git diffs into auditable, confidence-aware decision reasoning.
 
 Facts remain deterministic. AI interprets facts. Policy decides actions.
