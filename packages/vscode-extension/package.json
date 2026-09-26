@@ -1,9 +1,13 @@
 {
-  "name": "vibe-vscode",
+  "name": "vibe-vscode-extension",
   "displayName": "VIBE by DevFrames — Engineering Intelligence",
   "publisher": "devframes",
   "description": "See requirements, decisions and AI-change risk for the current project, powered by VIBE by DevFrames.",
   "version": "0.4.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tejakarthik657/vibe.git"
+  },
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
   "activationEvents": [
