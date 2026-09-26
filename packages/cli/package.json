@@ -12,11 +12,11 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "vibe-dev-core": "0.1.1",
-    "vibe-dev-decision-core": "0.1.1",
-    "vibe-dev-policy-engine": "0.2.0",
-    "vibe-dev-provider-rules": "0.1.1",
-    "vibe-dev-provider-llm": "0.2.0",
+    "vibe-dev-core": "0.3.0",
+    "vibe-dev-decision-core": "0.3.0",
+    "vibe-dev-policy-engine": "0.3.0",
+    "vibe-dev-provider-rules": "0.3.0",
+    "vibe-dev-provider-llm": "0.3.0",
     "vibe-dev-storage": "0.3.0",
     "chalk": "^4.1.2",
     "commander": "^12.1.0",

@@ -1,6 +1,6 @@
 {
   "name": "vibe-dev-decision-core",
-  "version": "0.1.1",
+  "version": "0.3.0",
   "description": "VIBE Decision Intelligence Core Types & Contracts by DevFrames",
   "author": "DevFrames",
   "main": "dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "vibe-dev-provider-llm",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "VIBE Groq & LLM Decision Provider by DevFrames",
   "author": "DevFrames",
   "main": "dist/index.js",
@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "vibe-dev-decision-core": "0.1.1"
+    "vibe-dev-decision-core": "0.3.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",

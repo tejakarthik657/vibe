@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "vibe-dev-decision-core": "0.1.1"
+    "vibe-dev-decision-core": "0.3.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
