@@ -1,6 +1,6 @@
 {
   "name": "vibe-dev-policy-engine",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "VIBE Confidence & Policy Engine by DevFrames",
   "author": "DevFrames",
   "main": "dist/index.js",
@@ -9,10 +9,10 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "vibe-dev-decision-core": "0.3.0",
-    "vibe-dev-provider-rules": "0.3.0",
-    "vibe-dev-provider-llm": "0.3.0",
-    "vibe-dev-storage": "0.3.0",
+    "vibe-dev-decision-core": "0.4.0",
+    "vibe-dev-provider-rules": "0.4.0",
+    "vibe-dev-provider-llm": "0.4.0",
+    "vibe-dev-storage": "0.4.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
