@@ -228,6 +228,23 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("vibe.testProviders", () => runVibe("test-providers", channel)),
     vscode.commands.registerCommand("vibe.migrateStorage", () => runVibe("migrate-storage", channel, refreshAll)),
     vscode.commands.registerCommand("vibe.configShow", () => runVibe("config show", channel)),
+    vscode.commands.registerCommand("vibe.trace", async () => {
+      const activeEditor = vscode.window.activeTextEditor;
+      let defaultSymbol = "";
+      if (activeEditor) {
+        const sel = activeEditor.selection;
+        defaultSymbol = activeEditor.document.getText(sel).trim();
+      }
+      const symbol = await vscode.window.showInputBox({ prompt: "Symbol name to trace across the graph", value: defaultSymbol });
+      if (symbol) runVibe(`trace "${symbol.replace(/"/g, '\\"')}"`, channel);
+    }),
+    vscode.commands.registerCommand("vibe.why", async () => {
+      const activeEditor = vscode.window.activeTextEditor;
+      const file = activeEditor ? activeEditor.document.fileName : await vscode.window.showInputBox({ prompt: "File path to explain requirements & ADR links for" });
+      if (file) runVibe(`why "${file.replace(/"/g, '\\"')}"`, channel);
+    }),
+    vscode.commands.registerCommand("vibe.onboard", () => runVibe("onboard", channel)),
+    vscode.commands.registerCommand("vibe.bootstrap", () => runVibe("bootstrap", channel, refreshAll)),
 
     vscode.commands.registerCommand("vibe.addRequirement", async () => {
       const text = await vscode.window.showInputBox({ prompt: "Requirement text" });
