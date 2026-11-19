@@ -1,6 +1,6 @@
 {
     "name":  "vibe-dev",
-    "version":  "0.4.2",
+    "version":  "0.4.8",
     "description":  "VIBE by DevFrames — Engineering Intelligence Layer for AI-assisted development.",
     "author":  "DevFrames",
     "bin":  {

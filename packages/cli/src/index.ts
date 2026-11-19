@@ -30,7 +30,7 @@ program
   .name("vibe")
   .allowUnknownOption()
   .description("VIBE — the engineering intelligence layer for AI-assisted development.")
-  .version("0.4.5")
+  .version("0.4.8")
   .option("-q, --quiet", "Suppress non-essential console logs")
   .option("-v, --verbose", "Enable verbose diagnostic logs")
   .option("--debug", "Enable debug information (files considered, ignored, evidence, provider)")
