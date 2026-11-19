@@ -28,11 +28,13 @@ interface Task {
   requirementIds: string[];
 }
 interface VibeState {
+  schemaVersion?: number;
   project: { name: string };
   requirements: Requirement[];
   decisions: Decision[];
   constraints: Constraint[];
   tasks: Task[];
+  architecture?: { frameworks: string[] } | null;
 }
 
 function workspaceRoot(): string | undefined {
@@ -55,23 +57,85 @@ function readState(): VibeState | undefined {
   }
 }
 
+/**
+ * Resolves the VIBE CLI executable in priority order:
+ * 1. Workspace-local node_modules/.bin/vibe
+ * 2. User configured path in vibe.cliPath setting
+ * 3. Global vibe command in PATH
+ * 4. npx fallback
+ */
+function resolveVibeCommand(root: string): { command: string; source: string } {
+  // 1. Check workspace local node_modules/.bin
+  const localBinVibe = path.join(root, "node_modules", ".bin", process.platform === "win32" ? "vibe.cmd" : "vibe");
+  if (fs.existsSync(localBinVibe)) {
+    return { command: `"${localBinVibe}"`, source: "workspace-local" };
+  }
+
+  // 2. User configured setting
+  const configPath = vscode.workspace.getConfiguration("vibe").get<string>("cliPath");
+  if (configPath && fs.existsSync(configPath)) {
+    return { command: `"${configPath}"`, source: "configured" };
+  }
+
+  // 3. Global vibe in PATH
+  return { command: "vibe", source: "global" };
+}
+
 class RequirementItem extends vscode.TreeItem {
-  constructor(public req: Requirement) {
+  constructor(public req: Requirement, root?: string) {
     super(`${req.id}  ${req.text}`, vscode.TreeItemCollapsibleState.None);
-    this.description = req.status;
-    this.tooltip = `${req.id}\nLinked files: ${req.linkedFiles.join(", ") || "(none)"}`;
+    this.description = req.status ? req.status.toUpperCase() : "ACTIVE";
+    this.tooltip = `${req.id} [${req.status}]\n${req.text}\nLinked: ${req.linkedFiles.join(", ") || "(none)"}`;
     this.iconPath = new vscode.ThemeIcon(
-      req.status === "at_risk" ? "warning" : req.status === "verified" ? "check" : "circle-outline"
+      req.status === "at_risk"
+        ? "error"
+        : req.status === "verified"
+        ? "pass-filled"
+        : "circle-outline"
     );
+
+    // Click to open first linked file if available
+    if (root && req.linkedFiles.length > 0) {
+      const targetFile = path.join(root, req.linkedFiles[0]);
+      if (fs.existsSync(targetFile)) {
+        this.command = {
+          command: "vscode.open",
+          title: "Open File",
+          arguments: [vscode.Uri.file(targetFile)],
+        };
+      }
+    }
   }
 }
 
 class DecisionItem extends vscode.TreeItem {
   constructor(public dec: Decision) {
     super(`${dec.id}  ${dec.title}`, vscode.TreeItemCollapsibleState.None);
-    this.description = `${dec.source} · conf ${dec.confidence}`;
-    this.tooltip = dec.decision;
-    this.iconPath = new vscode.ThemeIcon("lightbulb");
+    const confPct = Math.round((dec.confidence ?? 0.8) * 100);
+    this.description = `${dec.source} · ${confPct}% conf`;
+    this.tooltip = `${dec.title}\n\n${dec.decision}`;
+    this.iconPath = new vscode.ThemeIcon(dec.confidence >= 0.8 ? "lightbulb" : "lightbulb-autofix");
+  }
+}
+
+class ConstraintItem extends vscode.TreeItem {
+  constructor(public con: Constraint) {
+    super(`${con.id}  ${con.text}`, vscode.TreeItemCollapsibleState.None);
+    this.description = con.severity.toUpperCase();
+    this.iconPath = new vscode.ThemeIcon(
+      con.severity === "critical" ? "error" : con.severity === "warning" ? "warning" : "info"
+    );
+  }
+}
+
+class TaskItem extends vscode.TreeItem {
+  constructor(public task: Task) {
+    super(`${task.id}  ${task.title}`, vscode.TreeItemCollapsibleState.None);
+    this.description = task.status.replace("_", " ").toUpperCase();
+    this.tooltip = task.requirementIds.length ? `Scope: ${task.requirementIds.join(", ")}` : "";
+    this.iconPath = new vscode.ThemeIcon(
+      task.status === "done" ? "pass-filled" : task.status === "in_progress" ? "sync~spin" : "circle-large-outline"
+    );
   }
 }
 
@@ -85,9 +149,10 @@ class RequirementsProvider implements vscode.TreeDataProvider<RequirementItem> {
     return el;
   }
   getChildren() {
+    const root = workspaceRoot();
     const state = readState();
     if (!state) return [];
-    return state.requirements.map((r) => new RequirementItem(r));
+    return state.requirements.map((r) => new RequirementItem(r, root));
   }
 }
 
@@ -104,25 +169,6 @@ class DecisionsProvider implements vscode.TreeDataProvider<DecisionItem> {
     const state = readState();
     if (!state) return [];
     return state.decisions.map((d) => new DecisionItem(d));
-  }
-}
-
-class ConstraintItem extends vscode.TreeItem {
-  constructor(public con: Constraint) {
-    super(`${con.id}  ${con.text}`, vscode.TreeItemCollapsibleState.None);
-    this.description = con.severity;
-    this.iconPath = new vscode.ThemeIcon(con.severity === "critical" ? "error" : con.severity === "warning" ? "warning" : "info");
-  }
-}
-
-class TaskItem extends vscode.TreeItem {
-  constructor(public task: Task) {
-    super(`${task.id}  ${task.title}`, vscode.TreeItemCollapsibleState.None);
-    this.description = task.status;
-    this.tooltip = task.requirementIds.length ? `Scope: ${task.requirementIds.join(", ")}` : "";
-    this.iconPath = new vscode.ThemeIcon(
-      task.status === "done" ? "pass-filled" : task.status === "in_progress" ? "sync" : "circle-large-outline"
-    );
   }
 }
 
@@ -161,16 +207,37 @@ class TasksProvider implements vscode.TreeDataProvider<TaskItem> {
 function runVibe(args: string, channel: vscode.OutputChannel, onDone?: () => void) {
   const root = workspaceRoot();
   if (!root) {
-    vscode.window.showErrorMessage("VIBE: no workspace folder open.");
+    vscode.window.showErrorMessage("VIBE: No active workspace folder open.");
     return;
   }
+
+  const { command: cliCmd, source } = resolveVibeCommand(root);
+  const startTime = Date.now();
+
   channel.show(true);
-  channel.appendLine(`$ vibe ${args}`);
-  // Prefer a locally installed CLI (npx will resolve node_modules/.bin or fall back to registry)
-  exec(`npx --yes vibe-dev ${args}`, { cwd: root }, (err, stdout, stderr) => {
+  channel.appendLine(`\n------------------------------------------------------------`);
+  channel.appendLine(`[VIBE] Executing: ${cliCmd} ${args} (${source})`);
+  channel.appendLine(`[STATUS] Running...`);
+  channel.appendLine(`------------------------------------------------------------`);
+
+  const fullCmd = `${cliCmd} ${args}`;
+
+  exec(fullCmd, { cwd: root }, (err, stdout, stderr) => {
+    const duration = Date.now() - startTime;
     if (stdout) channel.append(stdout);
     if (stderr) channel.append(stderr);
-    if (err) channel.appendLine(`\n[exit code ${err.code}]`);
+
+    const exitCode = err ? err.code ?? 1 : 0;
+    channel.appendLine(`\n------------------------------------------------------------`);
+    channel.appendLine(`[STATUS] ${exitCode === 0 ? "Completed successfully" : "Failed with exit code " + exitCode} in ${duration}ms`);
+    channel.appendLine(`------------------------------------------------------------\n`);
+
+    if (err && exitCode === 2) {
+      vscode.window.showWarningMessage("VIBE Guard: Commit / diff BLOCKED due to high risk or architectural findings.");
+    } else if (err && exitCode !== 0) {
+      vscode.window.showErrorMessage(`VIBE command failed with exit code ${exitCode}. Check output channel.`);
+    }
+
     onDone?.();
   });
 }
@@ -202,24 +269,46 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(watcher);
   }
 
+  // Display version and resolution info in Output channel at startup
+  const root = workspaceRoot();
+  if (root) {
+    const { source } = resolveVibeCommand(root);
+    channel.appendLine(`VIBE extension: 0.4.5 | CLI resolution: ${source} | Compatibility: supported`);
+  }
+
   context.subscriptions.push(
     vscode.commands.registerCommand("vibe.refresh", refreshAll),
     vscode.commands.registerCommand("vibe.scan", () => runVibe("scan", channel, refreshAll)),
     vscode.commands.registerCommand("vibe.status", () => runVibe("status", channel)),
     vscode.commands.registerCommand("vibe.doctor", () => runVibe("doctor", channel)),
-    vscode.commands.registerCommand("vibe.guard", () => runVibe("guard", channel)),
+    vscode.commands.registerCommand("vibe.guard", () => {
+      if (root && !fs.existsSync(path.join(root, ".git"))) {
+        vscode.window.showErrorMessage("VIBE Guard requires a Git repository to compute working tree diffs.");
+        return;
+      }
+      runVibe("guard", channel);
+    }),
     vscode.commands.registerCommand("vibe.impact", async () => {
       const activeEditor = vscode.window.activeTextEditor;
       const file = activeEditor ? activeEditor.document.fileName : await vscode.window.showInputBox({ prompt: "File path to analyze impact for" });
       if (file) runVibe(`impact "${file}"`, channel);
     }),
-    vscode.commands.registerCommand("vibe.drift", () => runVibe("drift", channel)),
+    vscode.commands.registerCommand("vibe.drift", () => {
+      const state = readState();
+      if (!state?.architecture) {
+        vscode.window.showInformationMessage("No architecture declared yet. Run `VIBE: Bootstrap Architecture Presets` first.");
+      }
+      runVibe("drift", channel);
+    }),
     vscode.commands.registerCommand("vibe.checkpoint", () => runVibe("checkpoint", channel, refreshAll)),
     vscode.commands.registerCommand("vibe.explain", () => runVibe("explain", channel)),
-    vscode.commands.registerCommand("vibe.context", () => runVibe("context", channel)),
+    vscode.commands.registerCommand("vibe.context", async () => {
+      const task = await vscode.window.showInputBox({ prompt: "Task to scope context for (e.g. 'implement OAuth authentication')" });
+      if (task) runVibe(`context "${task.replace(/"/g, '\\"')}"`, channel);
+    }),
     vscode.commands.registerCommand("vibe.decisions", () => runVibe("decisions", channel)),
     vscode.commands.registerCommand("vibe.acceptDecision", async () => {
-      const decId = await vscode.window.showInputBox({ prompt: "Decision ID to accept (e.g. DEC-004)" });
+      const decId = await vscode.window.showInputBox({ prompt: "Decision ID to override (e.g. DEC-004)" });
       if (!decId) return;
       const reason = await vscode.window.showInputBox({ prompt: "Reason for override" });
       if (!reason) return;
@@ -235,12 +324,12 @@ export function activate(context: vscode.ExtensionContext) {
         const sel = activeEditor.selection;
         defaultSymbol = activeEditor.document.getText(sel).trim();
       }
-      const symbol = await vscode.window.showInputBox({ prompt: "Symbol name to trace across the graph", value: defaultSymbol });
+      const symbol = await vscode.window.showInputBox({ prompt: "Symbol, route, or requirement to trace across graph", value: defaultSymbol });
       if (symbol) runVibe(`trace "${symbol.replace(/"/g, '\\"')}"`, channel);
     }),
     vscode.commands.registerCommand("vibe.why", async () => {
       const activeEditor = vscode.window.activeTextEditor;
-      const file = activeEditor ? activeEditor.document.fileName : await vscode.window.showInputBox({ prompt: "File path to explain requirements & ADR links for" });
+      const file = activeEditor ? activeEditor.document.fileName : await vscode.window.showInputBox({ prompt: "File path or symbol to explain" });
       if (file) runVibe(`why "${file.replace(/"/g, '\\"')}"`, channel);
     }),
     vscode.commands.registerCommand("vibe.onboard", () => runVibe("onboard", channel)),

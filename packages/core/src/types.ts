@@ -38,6 +38,13 @@ export interface Requirement {
   linkedFiles: string[];
   createdAt: string;
   status: "proposed" | "active" | "verified" | "at_risk";
+  evidence?: {
+    protectedRoutes?: number;
+    authenticatedRoutes?: number;
+    orgScopedRoutes?: number;
+    crossTenantTests?: number;
+    verifyingTests?: string[];
+  };
 }
 
 export interface Decision {
@@ -77,12 +84,21 @@ export interface FileRecord {
   module: string;
 }
 
+export interface TechnologyRecord {
+  technology: string;
+  role: "framework" | "database" | "ai" | "task-queue" | "tool" | "infrastructure";
+  evidence: string[];
+  confidence: number;
+}
+
 export interface ProjectModel {
   languages: Record<string, number>;
   frameworks: string[];
+  technologies?: TechnologyRecord[];
   modules: string[];
   files: FileRecord[];
   scannedAt: string;
+  scanConfidence?: number;
 }
 
 export interface ProjectConfig {
@@ -113,6 +129,7 @@ export interface EngineeringSnapshot {
 }
 
 export interface VibeState {
+  schemaVersion?: number;
   project: ProjectConfig;
   requirements: Requirement[];
   decisions: Decision[];

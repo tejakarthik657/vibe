@@ -16,3 +16,5 @@ export * from "./impact";
 export * from "./snapshot";
 export * from "./explain";
 export * from "./provenance";
+export * from "./ignore";
+export * from "./sarif";

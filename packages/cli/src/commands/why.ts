@@ -1,60 +1,88 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore } from "vibe-dev-core";
+import { VibeStore, explainWhy } from "vibe-dev-core";
 
 export function registerWhy(program: Command) {
   program
-    .command("why [filePath...]")
-    .description("Explain why a file exists: linked requirements, decisions, dependents")
-    .action((fileParts: string[]) => {
+    .command("why [query...]")
+    .description("Explain why a file, module, or symbol exists: linked requirements, decisions, dependents, and tests")
+    .option("-f, --format <format>", "text | json", "text")
+    .action((queryParts: string[], opts) => {
       const root = process.cwd();
       if (!VibeStore.exists(root)) {
         VibeStore.init(root, require("path").basename(root));
         console.log(chalk.blue(`ℹ Auto-initialized VIBE for "${require("path").basename(root)}"`));
       }
-      const queryPath = Array.isArray(fileParts) ? fileParts.join(" ").trim() : String(fileParts || "").trim();
-      if (!queryPath) {
-        console.log(chalk.red("Please specify a file path. E.g.: vibe why src/auth/service.ts"));
-        return;
-      }
-
-      const state = new VibeStore(root).get();
-      // Try exact match or fuzzy label match
-      let fileNode = state.nodes.find((n) => n.type === "File" && n.label === queryPath);
-      if (!fileNode) {
-        fileNode = state.nodes.find((n) => n.type === "File" && n.label?.toLowerCase().includes(queryPath.toLowerCase()));
-      }
-
-      if (!fileNode) {
-        console.log(chalk.red(`No graph data matching "${queryPath}". Run \`vibe scan\` first.`));
+      const rawQuery = Array.isArray(queryParts) ? queryParts.join(" ").trim() : String(queryParts || "").trim();
+      if (!rawQuery) {
+        console.log(chalk.red("Please specify a file path, module, or symbol. E.g.: vibe why app/core/deps.py"));
         process.exitCode = 1;
         return;
       }
 
-      const filePath = fileNode.label || queryPath;
-      console.log(chalk.bold(filePath));
-      const meta = fileNode.meta || {};
-      console.log(chalk.dim(`  language: ${meta.language ?? "unknown"}, lines: ${meta.lines ?? "?"}`));
+      const state = new VibeStore(root).get();
+      const result = explainWhy(root, state, rawQuery);
+
+      if (!result) {
+        console.log(chalk.red(`No graph data matching "${rawQuery}". Run \`vibe scan\` first or check the query.`));
+        process.exitCode = 1;
+        return;
+      }
+
+      if (opts.format === "json") {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+
+      console.log(chalk.bold(result.resolvedPath));
+      console.log(chalk.dim(`  Type: ${result.isModule ? "Module" : "Source File"}, Query: "${result.target}"`));
       console.log("");
 
-      const linkedReqs = state.requirements.filter((r) => r.linkedFiles.includes(filePath));
-      console.log(chalk.bold("Implements requirements:"));
-      console.log(linkedReqs.length ? linkedReqs.map((r) => `  - ${r.id}: ${r.text}`).join("\n") : "  (none linked)");
+      console.log(chalk.bold("Implements Requirements:"));
+      console.log(
+        result.requirements.length
+          ? result.requirements.map((r) => `  - ${r.id}: ${r.text}`).join("\n")
+          : "  (none linked — link with `vibe requirement link`)"
+      );
       console.log("");
 
-      const dependents = state.edges
-        .filter((e) => e.type === "DEPENDS_ON" && e.to === fileNode.id)
-        .map((e) => state.nodes.find((n) => n.id === e.from)?.label)
-        .filter((x): x is string => !!x);
-      console.log(chalk.bold("Depended on by:"));
-      console.log(dependents.length ? dependents.map((f) => `  - ${f}`).join("\n") : "  (no tracked dependents)");
+      console.log(chalk.bold("Architecture Decisions (ADRs):"));
+      console.log(
+        result.decisions.length
+          ? result.decisions.map((d) => `  - ${d.id} (${d.title}): ${d.decision}`).join("\n")
+          : "  (no direct ADRs associated)"
+      );
       console.log("");
 
-      const dependencies = state.edges
-        .filter((e) => e.type === "DEPENDS_ON" && e.from === fileNode.id)
-        .map((e) => state.nodes.find((n) => n.id === e.to)?.label)
-        .filter((x): x is string => !!x);
+      console.log(chalk.bold("Active Constraints:"));
+      console.log(
+        result.constraints.length
+          ? result.constraints.map((c) => `  - [${c.severity.toUpperCase()}] ${c.text}`).join("\n")
+          : "  (no constraints defined)"
+      );
+      console.log("");
+
+      console.log(chalk.bold("Depended on by (Callers & Routes):"));
+      console.log(
+        result.dependents.length
+          ? result.dependents.map((f) => `  - ${f}`).join("\n")
+          : "  (no tracked dependents)"
+      );
+      console.log("");
+
       console.log(chalk.bold("Depends on:"));
-      console.log(dependencies.length ? dependencies.map((f) => `  - ${f}`).join("\n") : "  (no tracked dependencies)");
+      console.log(
+        result.dependencies.length
+          ? result.dependencies.map((f) => `  - ${f}`).join("\n")
+          : "  (no tracked dependencies)"
+      );
+      console.log("");
+
+      console.log(chalk.bold("Verifying Tests:"));
+      console.log(
+        result.tests.length
+          ? result.tests.map((t) => `  - ${t}`).join("\n")
+          : "  (no direct tests detected)"
+      );
     });
 }

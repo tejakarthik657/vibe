@@ -1,11 +1,16 @@
 import { VibeState } from "./types";
+import { guessTestFiles } from "./trace";
 
-interface ContextBundle {
+export interface ContextBundle {
   task: string;
   relevantRequirements: { id: string; text: string }[];
   relevantDecisions: { id: string; title: string; decision: string }[];
   relevantConstraints: { id: string; text: string; severity: string }[];
   relevantFiles: string[];
+  relatedSymbols: string[];
+  existingTests: string[];
+  validationCommands: string[];
+  implementationBoundaries: string[];
 }
 
 function score(text: string, keywords: string[]): number {
@@ -16,9 +21,9 @@ function score(text: string, keywords: string[]): number {
 function extractKeywords(task: string): string[] {
   return task
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/[^a-z0-9\s_-]/g, " ")
     .split(/\s+/)
-    .filter((w) => w.length > 3);
+    .filter((w) => w.length > 2);
 }
 
 export function buildContext(state: VibeState, task: string): ContextBundle {
@@ -44,8 +49,9 @@ export function buildContext(state: VibeState, task: string): ContextBundle {
     .map((x) => ({ id: x.c.id, text: x.c.text, severity: x.c.severity }));
 
   const fileSet = new Set<string>();
+  const symbolSet = new Set<string>();
 
-  // 1. Keep existing requirement/decision/constraint linked-file discovery
+  // 1. Requirement linked files
   state.requirements
     .filter((r) => relevantRequirements.some((rr) => rr.id === r.id))
     .flatMap((r) => r.linkedFiles)
@@ -54,54 +60,84 @@ export function buildContext(state: VibeState, task: string): ContextBundle {
   if (state.lastScan) {
     const { files, modules } = state.lastScan;
 
-    // 2. Module-based file discovery: match keyword against module names
+    // 2. Module matching
     for (const kw of keywords) {
-      const matchedModules = modules.filter((m) =>
-        m.toLowerCase().includes(kw)
-      );
-      if (matchedModules.length > 0) {
-        for (const file of files) {
-          if (matchedModules.some((m) => file.module === m)) {
-            fileSet.add(file.path);
-          }
+      const matchedModules = modules.filter((m) => m.toLowerCase().includes(kw));
+      for (const m of matchedModules) {
+        files.filter((f) => f.module === m).forEach((f) => fileSet.add(f.path));
+      }
+    }
+
+    // 3. Path matching
+    files
+      .filter((f) => keywords.some((kw) => f.path.toLowerCase().includes(kw)))
+      .slice(0, 15)
+      .forEach((f) => fileSet.add(f.path));
+
+    // 4. Function/Class symbol matching
+    for (const f of files) {
+      for (const fn of f.exportsFunctions) {
+        if (keywords.some((kw) => fn.toLowerCase().includes(kw))) {
+          fileSet.add(f.path);
+          symbolSet.add(`${fn} (${f.path})`);
+        }
+      }
+      for (const cl of f.exportsClasses) {
+        if (keywords.some((kw) => cl.toLowerCase().includes(kw))) {
+          fileSet.add(f.path);
+          symbolSet.add(`class ${cl} (${f.path})`);
         }
       }
     }
 
-    // 3. Direct file path match: files whose path contains any keyword
-    const pathMatches = files.filter((f) =>
-      keywords.some((kw) => f.path.toLowerCase().includes(kw))
-    );
-    pathMatches.slice(0, 10).forEach((f) => fileSet.add(f.path));
-
-    // 4. Function/class name match
-    for (const file of files) {
-      const allExports = [...file.exportsFunctions, ...file.exportsClasses];
-      if (
-        allExports.some((name) =>
-          keywords.some((kw) => name.toLowerCase().includes(kw))
-        )
-      ) {
-        fileSet.add(file.path);
-      }
-    }
-
-    // 5. Fallback: if still no files, include all files from "app", "src", or "core" modules
+    // 5. Fallback if still empty: sample up to 25 core files
     if (fileSet.size === 0) {
-      const fallbackModules = new Set(["app", "src", "core"]);
-      let fallbackCount = 0;
-      for (const file of files) {
-        if (fallbackModules.has(file.module.toLowerCase()) && fallbackCount < 30) {
-          fileSet.add(file.path);
-          fallbackCount++;
-        }
-      }
+      files
+        .filter((f) => !/(test|spec)/i.test(f.path))
+        .slice(0, 25)
+        .forEach((f) => fileSet.add(f.path));
     }
   }
 
   const relevantFiles = Array.from(fileSet);
 
-  return { task, relevantRequirements, relevantDecisions, relevantConstraints, relevantFiles };
+  // Existing tests covering relevant files
+  const existingTests = Array.from(
+    new Set(relevantFiles.flatMap((f) => guessTestFiles(state, f)))
+  );
+
+  // Determine validation commands from detected frameworks
+  const validationCommands: string[] = [];
+  const frameworks = (state.lastScan?.frameworks || []).map((f) => f.toLowerCase());
+  const languages = Object.keys(state.lastScan?.languages || {}).map((l) => l.toLowerCase());
+
+  if (languages.includes("python") || frameworks.some((f) => f.includes("fastapi") || f.includes("django") || f.includes("flask"))) {
+    validationCommands.push("pytest tests/ -v");
+  }
+  if (languages.includes("typescript") || languages.includes("javascript")) {
+    validationCommands.push("npm test");
+    validationCommands.push("npm run build");
+  }
+  validationCommands.push("vibe guard --no-ai");
+
+  const implementationBoundaries = [
+    "Stay strictly within the files and requirements listed in scope.",
+    "Do not commit hardcoded API keys, JWT secrets, or connection strings.",
+    "Do not alter production database schemas without an accompanying migration script.",
+    "Run `vibe guard` before creating a pull request or committing changes.",
+  ];
+
+  return {
+    task,
+    relevantRequirements,
+    relevantDecisions,
+    relevantConstraints,
+    relevantFiles,
+    relatedSymbols: Array.from(symbolSet).slice(0, 15),
+    existingTests,
+    validationCommands,
+    implementationBoundaries,
+  };
 }
 
 export function renderAgentsMd(state: VibeState, bundle: ContextBundle): string {
@@ -110,18 +146,17 @@ export function renderAgentsMd(state: VibeState, bundle: ContextBundle): string 
 
   lines.push(`# AI Agent Context — ${state.project.name}`);
   lines.push("");
-  lines.push(`> Generated by VIBE on ${new Date().toISOString()}. Treat this as the current source of truth for scope.`);
+  lines.push(`> Generated by VIBE on ${new Date().toISOString()}. Treat this as the definitive scope boundary.`);
 
-  // Scan metadata
   if (scan) {
     const totalFiles = scan.files.length;
-    const scanDate = scan.scannedAt ? new Date(scan.scannedAt).toLocaleString() : "unknown";
-    lines.push(`> Scan: **${totalFiles} files** indexed on ${scanDate}.`);
+    const scanDate = scan.scannedAt ? new Date(scan.scannedAt).toLocaleDateString() : "recent";
+    lines.push(`> Index: **${totalFiles} files** indexed (${scanDate}), scan confidence: **${(scan.scanConfidence ?? 1.0) * 100}%**.`);
   }
 
   lines.push("");
   lines.push(`## Current Task`);
-  lines.push(bundle.task);
+  lines.push(`**${bundle.task}**`);
   lines.push("");
 
   if (bundle.relevantRequirements.length) {
@@ -129,53 +164,44 @@ export function renderAgentsMd(state: VibeState, bundle: ContextBundle): string 
     for (const r of bundle.relevantRequirements) lines.push(`- **${r.id}**: ${r.text}`);
     lines.push("");
   }
+
   if (bundle.relevantDecisions.length) {
-    lines.push(`## Relevant Architecture Decisions`);
+    lines.push(`## Relevant Architecture Decisions (ADRs)`);
     for (const d of bundle.relevantDecisions) lines.push(`- **${d.id}** (${d.title}): ${d.decision}`);
     lines.push("");
   }
+
   if (bundle.relevantConstraints.length) {
-    lines.push(`## Constraints`);
-    for (const c of bundle.relevantConstraints) lines.push(`- [${c.severity.toUpperCase()}] ${c.text}`);
+    lines.push(`## Active Constraints`);
+    for (const c of bundle.relevantConstraints) lines.push(`- **[${c.severity.toUpperCase()}]** ${c.text}`);
     lines.push("");
   }
+
   if (bundle.relevantFiles.length) {
-    lines.push(`## Files Likely In Scope`);
-    for (const f of bundle.relevantFiles) lines.push(`- ${f}`);
-    lines.push("");
-  } else if (scan && scan.files.length > 0) {
-    // Fallback: no specific scope found, list up to 30 source files
-    lines.push(`## All Source Files (no specific scope found)`);
-    for (const f of scan.files.slice(0, 30)) lines.push(`- ${f.path}`);
+    lines.push(`## Files In Scope`);
+    for (const f of bundle.relevantFiles) lines.push(`- \`${f}\``);
     lines.push("");
   }
 
-  // Project Stack section
-  if (scan) {
-    lines.push(`## Project Stack`);
-    if (scan.frameworks.length > 0) {
-      lines.push(`**Frameworks / Libraries:** ${scan.frameworks.join(", ")}`);
-    }
-    const languageEntries = Object.entries(scan.languages).sort((a, b) => b[1] - a[1]);
-    if (languageEntries.length > 0) {
-      lines.push(`**Languages:** ${languageEntries.map(([lang, count]) => `${lang} (${count})`).join(", ")}`);
-    }
+  if (bundle.relatedSymbols.length) {
+    lines.push(`## Related Symbols`);
+    for (const s of bundle.relatedSymbols) lines.push(`- \`${s}\``);
     lines.push("");
   }
 
-  // Detected Modules section
-  if (scan && scan.modules.length > 0) {
-    lines.push(`## Detected Modules`);
-    for (const mod of scan.modules) {
-      const fileCount = scan.files.filter((f) => f.module === mod).length;
-      lines.push(`- **${mod}** — ${fileCount} file${fileCount !== 1 ? "s" : ""}`);
-    }
+  if (bundle.existingTests.length) {
+    lines.push(`## Existing Verifying Tests`);
+    for (const t of bundle.existingTests) lines.push(`- \`${t}\``);
     lines.push("");
   }
 
-  lines.push(`## Ground Rules`);
-  lines.push(`- Stay within the files/requirements listed above unless the task clearly requires more.`);
-  lines.push(`- If you must deviate from a listed architecture decision, flag it — don't silently override it.`);
-  lines.push(`- After making changes, the developer will run \`vibe guard\` to check scope/impact before merging.`);
+  lines.push(`## Validation Commands`);
+  for (const cmd of bundle.validationCommands) lines.push(`\`\`\`bash\n${cmd}\n\`\`\``);
+  lines.push("");
+
+  lines.push(`## Implementation Boundaries`);
+  for (const rule of bundle.implementationBoundaries) lines.push(`- ${rule}`);
+  lines.push("");
+
   return lines.join("\n");
 }

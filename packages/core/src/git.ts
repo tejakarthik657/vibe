@@ -1,63 +1,129 @@
 import simpleGit, { SimpleGit } from "simple-git";
 import * as fs from "fs";
 import * as path from "path";
+import { IgnoreEngine, normalizePath } from "./ignore";
 
 export interface DiffSummary {
   isRepo: boolean;
-  changedFiles: string[];
+  baseline: "ci-merge-base" | "head" | "initial-tree";
+  changedFiles: string[]; // All unignored changed files (source + config + doc)
+  sourceFiles: string[];  // Strictly application source files
+  testFiles: string[];    // Test files changed
+  configFiles: string[];  // Configuration files changed
+  ignoredFilesCount: number; // Ignored/generated files in working tree
+  trackedCount: number;
+  untrackedSourceCount: number;
   insertions: number;
   deletions: number;
   raw: string;
-}
-
-const UNTRACKED_IGNORE_PREFIXES = [
-  'node_modules/', '.venv/', 'venv/', 'env/', 'dist/', 'build/', '.next/',
-  'coverage/', '__pycache__/', '.pytest_cache/', 'site-packages/', 'target/',
-  'out/', '.mypy_cache/', 'htmlcov/', 'alembic/versions/', '.git/'
-];
-
-function isUntrackedIgnored(filePath: string): boolean {
-  return UNTRACKED_IGNORE_PREFIXES.some((prefix) => filePath.startsWith(prefix));
 }
 
 export async function getWorkingDiff(root: string): Promise<DiffSummary> {
   const git: SimpleGit = simpleGit(root);
   const isRepo = await git.checkIsRepo().catch(() => false);
   if (!isRepo) {
-    return { isRepo: false, changedFiles: [], insertions: 0, deletions: 0, raw: "" };
+    return {
+      isRepo: false,
+      baseline: "initial-tree",
+      changedFiles: [],
+      sourceFiles: [],
+      testFiles: [],
+      configFiles: [],
+      ignoredFilesCount: 0,
+      trackedCount: 0,
+      untrackedSourceCount: 0,
+      insertions: 0,
+      deletions: 0,
+      raw: "",
+    };
   }
+
+  const ignoreEngine = IgnoreEngine.fromRoot(root);
   const status = await git.status();
 
-  // Filter untracked files through the ignore prefix list
-  const filteredUntracked = status.not_added.filter((f) => !isUntrackedIgnored(f));
+  // Determine baseline: CI merge-base vs local HEAD vs initial
+  let baseline: "ci-merge-base" | "head" | "initial-tree" = "head";
+  let hasCommits = false;
+  try {
+    await git.revparse(["HEAD"]);
+    hasCommits = true;
+  } catch {
+    hasCommits = false;
+    baseline = "initial-tree";
+  }
 
-  const changedFiles = [
+  // Check CI merge base
+  if (hasCommits && (process.env.CI || process.env.GITHUB_BASE_REF)) {
+    const targetBranch = process.env.GITHUB_BASE_REF || "origin/main";
+    try {
+      await git.raw(["merge-base", targetBranch, "HEAD"]);
+      baseline = "ci-merge-base";
+    } catch {
+      baseline = "head";
+    }
+  }
+
+  // Separate untracked files into unignored vs ignored/generated
+  const rawUntracked = status.not_added.map(normalizePath);
+  const untrackedFiltered = ignoreEngine.filterPaths(rawUntracked);
+
+  // Collect raw tracked changes
+  const rawTracked = [
     ...status.modified,
-    ...filteredUntracked,
     ...status.created,
     ...status.renamed.map((r) => r.to),
-  ];
+  ].map(normalizePath);
+
+  const trackedFiltered = ignoreEngine.filterPaths(rawTracked);
+
+  // Total unignored changed files
+  const changedFiles = Array.from(new Set([...trackedFiltered.allUnignored, ...untrackedFiltered.allUnignored]));
+  const sourceFiles = Array.from(new Set([...trackedFiltered.sourceFiles, ...untrackedFiltered.sourceFiles]));
+  const testFiles = Array.from(new Set([...trackedFiltered.testFiles, ...untrackedFiltered.testFiles]));
+  const configFiles = Array.from(new Set([...trackedFiltered.configFiles, ...untrackedFiltered.configFiles]));
+  const ignoredFilesCount = untrackedFiltered.ignoredFiles.length + trackedFiltered.ignoredFiles.length;
+
   let raw = "";
   let insertions = 0;
   let deletions = 0;
+
   try {
-    raw = await git.diff();
-    const summary = await git.diffSummary();
-    insertions = summary.insertions;
-    deletions = summary.deletions;
+    if (hasCommits) {
+      raw = await git.diff();
+      const summary = await git.diffSummary();
+      insertions = summary.insertions;
+      deletions = summary.deletions;
+    }
   } catch {
-    /* no diff available (e.g. no prior commit) */
+    /* best effort */
   }
-  // `git diff` omits untracked files, but guard must inspect them for secrets.
-  // Only scan filtered untracked files, capped at 200.
-  const untrackedToScan = filteredUntracked.slice(0, 200);
-  for (const file of untrackedToScan) {
+
+  // Append untracked unignored source files into raw diff for secret scanning (capped at 200 files)
+  const untrackedToInspect = untrackedFiltered.allUnignored.slice(0, 200);
+  for (const file of untrackedToInspect) {
     try {
       const content = fs.readFileSync(path.join(root, file), "utf-8");
-      raw += `\n+++ ${file}\n${content.split("\n").map((line) => `+${line}`).join("\n")}\n`;
+      raw += `\n+++ ${file}\n${content
+        .split("\n")
+        .map((line) => `+${line}`)
+        .join("\n")}\n`;
     } catch {
-      /* unreadable untracked file */
+      /* skip unreadable */
     }
   }
-  return { isRepo: true, changedFiles: Array.from(new Set(changedFiles)), insertions, deletions, raw };
+
+  return {
+    isRepo: true,
+    baseline,
+    changedFiles,
+    sourceFiles,
+    testFiles,
+    configFiles,
+    ignoredFilesCount,
+    trackedCount: trackedFiltered.allUnignored.length,
+    untrackedSourceCount: untrackedFiltered.sourceFiles.length,
+    insertions,
+    deletions,
+    raw,
+  };
 }

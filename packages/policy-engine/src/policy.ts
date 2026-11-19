@@ -55,8 +55,8 @@ export function evaluatePolicy(
     0
   );
 
-  // Deterministic safety evidence must never be downgraded by provider confidence.
-  if (highestEvidenceWeight >= 0.85) {
+  // Enforce invariant: critical finding OR risk >= 0.80 => BLOCK
+  if (highestEvidenceWeight >= 0.80) {
     return {
       action: "BLOCK",
       finalConfidence,

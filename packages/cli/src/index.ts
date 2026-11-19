@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import chalk from "chalk";
 import { registerInit } from "./commands/init";
 import { registerScan } from "./commands/scan";
 import { registerStatus } from "./commands/status";
@@ -6,9 +7,9 @@ import { registerRequirement } from "./commands/requirement";
 import { registerDecision } from "./commands/decision";
 import { registerContext } from "./commands/context";
 import { registerTrace } from "./commands/trace";
+import { registerWhy } from "./commands/why";
 import { registerDoctor } from "./commands/doctor";
 import { registerGuard } from "./commands/guard";
-import { registerWhy } from "./commands/why";
 import { registerConstraint } from "./commands/constraint";
 import { registerTask } from "./commands/task";
 import { registerArchitect, registerDrift } from "./commands/architect";
@@ -29,7 +30,17 @@ program
   .name("vibe")
   .allowUnknownOption()
   .description("VIBE — the engineering intelligence layer for AI-assisted development.")
-  .version("0.4.2");
+  .version("0.4.5")
+  .option("-q, --quiet", "Suppress non-essential console logs")
+  .option("-v, --verbose", "Enable verbose diagnostic logs")
+  .option("--debug", "Enable debug information (files considered, ignored, evidence, provider)")
+  .hook("preAction", (thisCommand) => {
+    const opts = thisCommand.opts();
+    if (opts.debug) {
+      process.env.VIBE_DEBUG = "true";
+      console.log(chalk.magenta("[DEBUG] VIBE Debug Mode active"));
+    }
+  });
 
 // Foundation
 registerInit(program);
@@ -61,7 +72,7 @@ registerImpact(program);
 registerCheckpoint(program);
 registerExplain(program);
 
-// Pre-process natural language args if unknown top-level command is supplied
+// Autocorrect / typo tolerance
 const knownCommands = [
   "init", "scan", "adopt", "status", "requirement", "req", "decision", "adr",
   "context", "trace", "why", "doctor", "guard", "constraint", "con", "task",
@@ -70,42 +81,38 @@ const knownCommands = [
   "migrate-storage", "help"
 ];
 
-const rawArgs = process.argv.slice(2);
-if (rawArgs.length > 0 && !rawArgs[0].startsWith("-") && !knownCommands.includes(rawArgs[0])) {
-  const fullText = rawArgs.join(" ").toLowerCase();
-  
-  if (fullText.includes("onboard") || fullText.includes("welcome") || fullText.includes("start")) {
-    process.argv = [process.argv[0], process.argv[1], "onboard"];
-  } else if (fullText.includes("hook") || fullText.includes("git")) {
-    process.argv = [process.argv[0], process.argv[1], "install-hooks"];
-  } else if (fullText.includes("bootstrap") || fullText.includes("preset") || fullText.includes("template")) {
-    process.argv = [process.argv[0], process.argv[1], "bootstrap", fullText];
-  } else if (fullText.includes("task") || fullText.includes("todo")) {
-    const title = rawArgs.filter(a => a.toLowerCase() !== "task" && a.toLowerCase() !== "add").join(" ");
-    process.argv = [process.argv[0], process.argv[1], "task", "add", title || fullText];
-  } else if (fullText.includes("req") || fullText.includes("requirement")) {
-    const text = rawArgs.filter(a => !["req", "requirement", "add"].includes(a.toLowerCase())).join(" ");
-    process.argv = [process.argv[0], process.argv[1], "req", "add", text || fullText];
-  } else if (fullText.includes("decision") || fullText.includes("adr")) {
-    const title = rawArgs.filter(a => !["decision", "adr", "add"].includes(a.toLowerCase())).join(" ");
-    process.argv = [process.argv[0], process.argv[1], "adr", "add", title || fullText];
-  } else if (fullText.includes("constraint") || fullText.includes("con")) {
-    const text = rawArgs.filter(a => !["constraint", "con", "add"].includes(a.toLowerCase())).join(" ");
-    process.argv = [process.argv[0], process.argv[1], "con", "add", text || fullText];
-  } else if (fullText.includes("doctor") || fullText.includes("diagnose") || fullText.includes("health")) {
-    process.argv = [process.argv[0], process.argv[1], "doctor"];
-  } else if (fullText.includes("scan") || fullText.includes("analyze")) {
-    process.argv = [process.argv[0], process.argv[1], "scan"];
-  } else if (fullText.includes("guard") || fullText.includes("review")) {
-    process.argv = [process.argv[0], process.argv[1], "guard"];
-  } else if (fullText.includes("context")) {
-    const task = rawArgs.filter(a => a.toLowerCase() !== "context").join(" ");
-    process.argv = [process.argv[0], process.argv[1], "context", task || "general task"];
-  } else if (fullText.includes("status") || fullText.includes("overview")) {
-    process.argv = [process.argv[0], process.argv[1], "status"];
-  } else if (fullText.includes("checkpoint") || fullText.includes("snapshot")) {
-    process.argv = [process.argv[0], process.argv[1], "checkpoint"];
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
   }
+  return dp[m][n];
 }
 
-program.parseAsync(process.argv);
+program.on("command:*", (operands: string[]) => {
+  const unknown = operands[0];
+  let closest = "";
+  let minDistance = 3; // only suggest if distance <= 2
+  for (const cmd of knownCommands) {
+    const d = levenshtein(unknown, cmd);
+    if (d < minDistance) {
+      minDistance = d;
+      closest = cmd;
+    }
+  }
+  if (closest) {
+    console.error(chalk.red(`Unknown command: "${unknown}". Did you mean "vibe ${closest}"?`));
+  } else {
+    console.error(chalk.red(`Unknown command: "${unknown}". Run \`vibe --help\` for available commands.`));
+  }
+  process.exitCode = 1;
+});
+
+program.parse(process.argv);

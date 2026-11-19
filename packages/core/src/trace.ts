@@ -1,4 +1,5 @@
 import { VibeState } from "./types";
+import { normalizePath } from "./ignore";
 
 export interface TraceResult {
   requirementId: string;
@@ -12,46 +13,43 @@ export interface TraceResult {
 
 export interface SymbolTraceResult {
   symbol: string;
-  definitions: string[];
-  likelyTests: string[];
+  definitions: { file: string; kind: "function" | "class" | "route" | "module" }[];
+  imports: string[];
+  callers: string[];
   dependents: string[];
+  likelyTests: string[];
+  linkedRequirements: { id: string; text: string }[];
+  relatedDecisions: { id: string; title: string; decision: string }[];
 }
 
-function guessTestFiles(state: VibeState, filePath: string): string[] {
+export function guessTestFiles(state: VibeState, filePath: string): string[] {
   if (!state.lastScan) return [];
 
-  const base = filePath.replace(/\.[jt]sx?$/, "").replace(/\.py$/, "").split("/").pop();
+  const norm = normalizePath(filePath);
+  const base = norm.replace(/\.[jt]sx?$/, "").replace(/\.py$/, "").split("/").pop();
   if (!base) return [];
 
-  // Derive dotted module path from file path (e.g. app/api/routes.py → app.api.routes)
-  const dottedModule = filePath
+  const dottedModule = norm
     .replace(/\.[jt]sx?$/, "")
     .replace(/\.py$/, "")
     .replace(/\//g, ".");
 
-  // Source file's directory
-  const sourceDir = filePath.includes("/")
-    ? filePath.substring(0, filePath.lastIndexOf("/"))
-    : "";
-
+  const sourceDir = norm.includes("/") ? norm.substring(0, norm.lastIndexOf("/")) : "";
   const results = new Set<string>();
 
   for (const f of state.lastScan.files) {
-    if (!/(test|spec)/i.test(f.path)) continue;
+    if (!/(test|spec)/i.test(f.path) && !f.path.startsWith("tests/")) continue;
 
-    // 1. Existing: filename similarity
     if (f.path.toLowerCase().includes(base.toLowerCase())) {
       results.add(f.path);
       continue;
     }
 
-    // 2. Import-based: test file imports the dotted module path
     if (dottedModule && f.imports && f.imports.some((imp) => imp === dottedModule || imp.endsWith(`.${dottedModule}`))) {
       results.add(f.path);
       continue;
     }
 
-    // 3. Same directory: test file lives in the same dir as the source file
     if (sourceDir && f.path.startsWith(sourceDir + "/")) {
       results.add(f.path);
     }
@@ -78,13 +76,11 @@ export function traceRequirement(state: VibeState, reqId: string): TraceResult |
     )
   );
 
-  // Populate module from first linked file
   const firstFile = req.linkedFiles[0];
   const module = firstFile
     ? state.lastScan?.files.find((f) => f.path === firstFile)?.module
     : undefined;
 
-  // Populate sibling requirements: other reqs linked to files in the same module
   let siblingRequirements: { id: string; text: string }[] | undefined;
   if (module) {
     const filesInModule = new Set(
@@ -111,68 +107,152 @@ export function traceRequirement(state: VibeState, reqId: string): TraceResult |
   };
 }
 
-export function traceSymbol(state: VibeState, symbol: string): SymbolTraceResult {
-  const query = symbol.toLowerCase();
+export function traceSymbol(state: VibeState, queryInput: string): SymbolTraceResult {
+  const query = queryInput.trim();
+  const lowerQuery = query.toLowerCase();
   const files = state.lastScan?.files ?? [];
 
-  let definitions: string[] = [];
+  const definitions: SymbolTraceResult["definitions"] = [];
+  const matchedFilePaths = new Set<string>();
 
-  // Strategy 1: dotted module path → file path match
-  if (symbol.includes(".")) {
-    const asPath = symbol.replace(/\./g, "/");
-    const matched = files.filter((file) => {
-      const withoutExt = file.path.replace(/\.[^/.]+$/, "");
-      return withoutExt === asPath || withoutExt.endsWith("/" + asPath);
-    });
-    if (matched.length > 0) {
-      definitions = matched.map((f) => f.path);
+  // Check HTTP Route pattern (e.g. "GET /buyers", "POST /auth/token", "/buyers")
+  const routeMatch = query.match(/^(?:(GET|POST|PUT|PATCH|DELETE)\s+)?([/A-Za-z0-9_-]+)$/i);
+  if (routeMatch && (routeMatch[1] || routeMatch[2].startsWith("/"))) {
+    const method = routeMatch[1] ? routeMatch[1].toUpperCase() : null;
+    const routePath = routeMatch[2].startsWith("/") ? routeMatch[2] : `/${routeMatch[2]}`;
+
+    for (const file of files) {
+      for (const fn of file.exportsFunctions) {
+        if (fn.startsWith("route:")) {
+          const parts = fn.split(":");
+          // route:GET:/buyers or route:/buyers
+          const rMethod = parts.length > 2 ? parts[1] : null;
+          const rPath = parts.length > 2 ? parts[2] : parts[1];
+          if (rPath.toLowerCase().includes(routePath.toLowerCase())) {
+            if (!method || (rMethod && rMethod === method)) {
+              definitions.push({ file: file.path, kind: "route" });
+              matchedFilePaths.add(file.path);
+            }
+          }
+        }
+      }
     }
   }
 
-  // Strategy 2: exact function/class name match (existing logic)
-  if (definitions.length === 0) {
-    definitions = files
-      .filter(
-        (file) =>
-          file.exportsFunctions.some((name) => name.toLowerCase() === query) ||
-          file.exportsClasses.some((name) => name.toLowerCase() === query)
-      )
-      .map((file) => file.path);
+  // Check fully qualified symbol path (e.g. app.core.deps.get_current_user)
+  if (definitions.length === 0 && query.includes(".")) {
+    const parts = query.split(".");
+    const possibleSymbol = parts.pop()!;
+    const possibleModulePath = parts.join("/");
+
+    for (const file of files) {
+      const withoutExt = file.path.replace(/\.[^/.]+$/, "");
+      if (withoutExt === possibleModulePath || withoutExt.endsWith("/" + possibleModulePath)) {
+        if (
+          file.exportsFunctions.includes(possibleSymbol) ||
+          file.exportsClasses.includes(possibleSymbol)
+        ) {
+          const kind = file.exportsClasses.includes(possibleSymbol) ? "class" : "function";
+          definitions.push({ file: file.path, kind });
+          matchedFilePaths.add(file.path);
+        }
+      }
+    }
+
+    // Direct dotted path matching file path
+    if (definitions.length === 0) {
+      const fullAsPath = query.replace(/\./g, "/");
+      for (const file of files) {
+        const withoutExt = file.path.replace(/\.[^/.]+$/, "");
+        if (withoutExt === fullAsPath || withoutExt.endsWith("/" + fullAsPath)) {
+          definitions.push({ file: file.path, kind: "module" });
+          matchedFilePaths.add(file.path);
+        }
+      }
+    }
   }
 
-  // Strategy 3: partial match — query is a substring of any exported function/class
+  // Exact function or class name
   if (definitions.length === 0) {
-    definitions = files
-      .filter(
-        (file) =>
-          file.exportsFunctions.some((name) => name.toLowerCase().includes(query)) ||
-          file.exportsClasses.some((name) => name.toLowerCase().includes(query))
-      )
-      .map((file) => file.path);
+    for (const file of files) {
+      if (file.exportsClasses.some((c) => c.toLowerCase() === lowerQuery)) {
+        definitions.push({ file: file.path, kind: "class" });
+        matchedFilePaths.add(file.path);
+      } else if (file.exportsFunctions.some((f) => f.toLowerCase() === lowerQuery)) {
+        definitions.push({ file: file.path, kind: "function" });
+        matchedFilePaths.add(file.path);
+      }
+    }
   }
 
-  // Strategy 4: file basename match (without extension), case-insensitive
+  // Partial match across functions, classes, or routes
   if (definitions.length === 0) {
-    definitions = files
-      .filter((file) => {
-        const basename = file.path.split("/").pop()?.replace(/\.[^/.]+$/, "") ?? "";
-        return basename.toLowerCase() === query;
-      })
-      .map((file) => file.path);
+    for (const file of files) {
+      if (file.exportsClasses.some((c) => c.toLowerCase().includes(lowerQuery))) {
+        definitions.push({ file: file.path, kind: "class" });
+        matchedFilePaths.add(file.path);
+      } else if (file.exportsFunctions.some((f) => f.toLowerCase().includes(lowerQuery))) {
+        definitions.push({ file: file.path, kind: "function" });
+        matchedFilePaths.add(file.path);
+      }
+    }
   }
 
-  const likelyTests = definitions.flatMap((file) => guessTestFiles(state, file));
+  // Basename match
+  if (definitions.length === 0) {
+    for (const file of files) {
+      const basename = file.path.split("/").pop()?.replace(/\.[^/.]+$/, "") ?? "";
+      if (basename.toLowerCase() === lowerQuery) {
+        definitions.push({ file: file.path, kind: "module" });
+        matchedFilePaths.add(file.path);
+      }
+    }
+  }
+
+  const defFilePaths = Array.from(matchedFilePaths);
+  const importsSet = new Set<string>();
+  for (const df of defFilePaths) {
+    const record = files.find((f) => f.path === df);
+    if (record) {
+      record.imports.forEach((imp) => importsSet.add(imp));
+    }
+  }
+
+  const likelyTests = Array.from(new Set(defFilePaths.flatMap((f) => guessTestFiles(state, f))));
+
   const fileNodeIds = state.nodes
-    .filter((node) => node.type === "File" && definitions.includes(node.label))
-    .map((node) => node.id);
-  const dependents = Array.from(
+    .filter((n) => n.type === "File" && defFilePaths.includes(n.label))
+    .map((n) => n.id);
+
+  const callers = Array.from(
     new Set(
       state.edges
-        .filter((edge) => edge.type === "DEPENDS_ON" && fileNodeIds.includes(edge.to))
-        .map((edge) => state.nodes.find((node) => node.id === edge.from)?.label)
-        .filter((value): value is string => !!value)
+        .filter((e) => e.type === "DEPENDS_ON" && fileNodeIds.includes(e.to))
+        .map((e) => state.nodes.find((n) => n.id === e.from)?.label)
+        .filter((v): v is string => !!v)
     )
   );
 
-  return { symbol, definitions, likelyTests: Array.from(new Set(likelyTests)), dependents };
+  const linkedRequirements = state.requirements
+    .filter((r) => r.linkedFiles.some((f) => defFilePaths.includes(f)))
+    .map((r) => ({ id: r.id, text: r.text }));
+
+  const relatedDecisions = state.decisions
+    .filter((d) =>
+      defFilePaths.some((f) =>
+        (d.title + " " + d.decision + " " + d.context).toLowerCase().includes(f.toLowerCase())
+      ) || (d.title + " " + d.decision).toLowerCase().includes(lowerQuery)
+    )
+    .map((d) => ({ id: d.id, title: d.title, decision: d.decision }));
+
+  return {
+    symbol: query,
+    definitions,
+    imports: Array.from(importsSet),
+    callers,
+    dependents: callers,
+    likelyTests,
+    linkedRequirements,
+    relatedDecisions,
+  };
 }
