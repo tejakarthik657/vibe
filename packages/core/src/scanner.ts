@@ -172,20 +172,29 @@ function analyzePythonFile(filePath: string): { imports: string[]; funcs: string
   try {
     const text = fs.readFileSync(filePath, "utf-8");
     const lines = text.split("\n");
+    let routerPrefix = "";
     let pendingRoute: string | null = null;
 
     for (const line of lines) {
       const trimmed = line.trim();
 
+      // Detect APIRouter prefix
+      const prefixMatch = trimmed.match(/APIRouter\s*\([^)]*prefix\s*=\s*["']([^"']+)["']/i);
+      if (prefixMatch) {
+        routerPrefix = prefixMatch[1].trim();
+      }
+
       // Detect FastAPI / Flask route decorators
       const routeDecoratorMatch = trimmed.match(
-        /^@(?:router|app|api_router)\.(get|post|put|patch|delete|api_route|route)\s*\(\s*["']([^"']+)["']/i
+        /^@(?:router|app|api_router)\.(get|post|put|patch|delete|api_route|route)\s*\(\s*["']?([^"'\s,]*)["']?/i
       );
       if (routeDecoratorMatch) {
         const method = routeDecoratorMatch[1].toUpperCase();
-        const routePath = routeDecoratorMatch[2];
-        pendingRoute = `${method} ${routePath}`;
-        funcs.push(`route:${method}:${routePath}`);
+        const rawSubPath = routeDecoratorMatch[2] || "";
+        const cleanSub = rawSubPath ? (rawSubPath.startsWith("/") ? rawSubPath : "/" + rawSubPath) : "";
+        const fullRoutePath = (routerPrefix + cleanSub).replace(/\/+/g, "/") || "/";
+        pendingRoute = `${method} ${fullRoutePath}`;
+        funcs.push(`route:${method}:${fullRoutePath}`);
       }
 
       const fromImport = trimmed.match(/^from\s+([.\w]+)\s+import\s+/);
