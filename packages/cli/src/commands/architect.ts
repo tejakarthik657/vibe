@@ -24,7 +24,9 @@ export function registerArchitect(program: Command) {
         console.log(chalk.red("Please specify framework names. E.g.: vibe architect set Next.js Express PostgreSQL"));
         return;
       }
-      const frameworks = frameworksStr.split(/[\s,]+/).map((f: string) => f.trim()).filter(Boolean);
+      const frameworks = (frameworksStr.includes(",") ? frameworksStr.split(",") : frameworksStr.split(/\s+/))
+        .map((f: string) => f.trim())
+        .filter(Boolean);
       const arch = setDeclaredArchitecture(state, frameworks, opts.database, opts.notes);
       store.set(state);
       store.save();

@@ -152,6 +152,9 @@ export function runDoctor(root: string, state: VibeState): DoctorFinding[] {
   // Evidence-based requirement verification
   for (const req of state.requirements) {
     const report = verifyRequirement(root, state, req.id);
+    if (report) {
+      req.status = report.status;
+    }
     if (report && report.status === "at_risk") {
       findings.push({
         severity: "high",

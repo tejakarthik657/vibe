@@ -271,9 +271,16 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Display version and resolution info in Output channel at startup
   const root = workspaceRoot();
+  const extVersion = (context as any)?.extension?.packageJSON?.version ?? "0.4.7";
   if (root) {
-    const { source } = resolveVibeCommand(root);
-    channel.appendLine(`VIBE extension: 0.4.5 | CLI resolution: ${source} | Compatibility: supported`);
+    const { command: cliCmd, source } = resolveVibeCommand(root);
+    exec(`${cliCmd} --version`, { cwd: root }, (err, stdout) => {
+      const cliVersion = stdout ? stdout.trim() : (err ? "not found" : "unknown");
+      const compat = err ? "missing" : "supported";
+      channel.appendLine(`VIBE extension: ${extVersion} | CLI: ${cliVersion} (${source}) | Compatibility: ${compat}`);
+    });
+  } else {
+    channel.appendLine(`VIBE extension: ${extVersion} | CLI resolution: none | Compatibility: supported`);
   }
 
   context.subscriptions.push(

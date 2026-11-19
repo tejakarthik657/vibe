@@ -1,6 +1,7 @@
 import assert from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import Module from "node:module";
 
 const corePath = path.resolve("./packages/core/dist/index.js");
 const policyPath = path.resolve("./packages/policy-engine/dist/index.js");
@@ -13,9 +14,9 @@ async function runTests() {
   let passed = 0;
   let failed = 0;
 
-  function test(name, fn) {
+  async function test(name, fn) {
     try {
-      fn();
+      await fn();
       console.log(`  ✔ [PASS] ${name}`);
       passed++;
     } catch (err) {
@@ -29,7 +30,7 @@ async function runTests() {
   const policy = await import(`file://${policyPath.replace(/\\/g, "/")}`);
 
   // 1. Ignore Engine Tests
-  test("IgnoreEngine: Excludes default cache and dependency directories", () => {
+  await test("IgnoreEngine: Excludes default cache and dependency directories", () => {
     const engine = new core.IgnoreEngine(["custom_build/**", "*.bak"]);
 
     assert.strictEqual(engine.isIgnored(".venv/lib/python3.11/site.py"), true);
@@ -45,7 +46,7 @@ async function runTests() {
     assert.strictEqual(engine.isIgnored("frontend/src/App.tsx"), false);
   });
 
-  test("IgnoreEngine: Categorizes files accurately with Windows backslashes", () => {
+  await test("IgnoreEngine: Categorizes files accurately with Windows backslashes", () => {
     const engine = new core.IgnoreEngine();
 
     assert.strictEqual(engine.categorize("app\\core\\deps.py"), "source");
@@ -58,7 +59,7 @@ async function runTests() {
   });
 
   // 2. Guard Invariant & Policy Engine Tests
-  test("Guard Policy Invariant: Critical finding OR risk >= 0.80 MUST resolve to BLOCK", () => {
+  await test("Guard Policy Invariant: Critical finding OR risk >= 0.80 MUST resolve to BLOCK", () => {
     const req = {
       id: "REQ-TEST-001",
       type: "choice",
@@ -80,7 +81,7 @@ async function runTests() {
     assert.strictEqual(decision.action, "BLOCK", "High-risk evidence weight >= 0.80 must never resolve to ALLOW!");
   });
 
-  test("Guard Policy Invariant: Medium risk (>= 0.40) resolves to REVIEW, never ALLOW", () => {
+  await test("Guard Policy Invariant: Medium risk (>= 0.40) resolves to REVIEW, never ALLOW", () => {
     const req = {
       id: "REQ-TEST-002",
       type: "choice",
@@ -102,7 +103,7 @@ async function runTests() {
     assert.strictEqual(decision.action, "REVIEW", "Medium risk (>= 0.40) must never resolve to ALLOW!");
   });
 
-  test("Guard Report: Status mapping ensures risk 0.85 maps to block", () => {
+  await test("Guard Report: Status mapping ensures risk 0.85 maps to block", () => {
     assert.strictEqual(core.statusFromRisk(0.95), "block");
     assert.strictEqual(core.statusFromRisk(0.80), "block");
     assert.strictEqual(core.statusFromRisk(0.79), "warning");
@@ -111,7 +112,7 @@ async function runTests() {
   });
 
   // 3. Secret Redaction Tests
-  test("Secret Redaction: Completely strips AWS, Groq, GitHub, private keys, and passwords", () => {
+  await test("Secret Redaction: Completely strips AWS, Groq, GitHub, private keys, and passwords", () => {
     const sample = `
       AWS_KEY = "AKIA1234567890ABCDEF"
       GROQ_KEY = "gsk_1234567890abcdef1234567890abcdef1234"
@@ -129,7 +130,7 @@ async function runTests() {
   });
 
   // 4. SARIF Generation Tests
-  test("SARIF Generation: Produces standard SARIF v2.1.0 log for CI/CD gates", () => {
+  await test("SARIF Generation: Produces standard SARIF v2.1.0 log for CI/CD gates", () => {
     const mockReport = {
       checks: [
         { name: "Secret exposure", risk: 0.95, status: "block", detail: "Secret detected" },
@@ -148,7 +149,7 @@ async function runTests() {
   });
 
   // 5. Symbol Tracing & HTTP Route Matching
-  test("Symbol Tracing: Supports dotted FQN, HTTP route methods, classes and functions", () => {
+  await test("Symbol Tracing: Supports dotted FQN, HTTP route methods, classes and functions", () => {
     const mockState = {
       project: { name: "test-app" },
       requirements: [{ id: "REQ-001", text: "Auth required", linkedFiles: ["app/core/deps.py"] }],
@@ -206,7 +207,7 @@ async function runTests() {
   });
 
   // 6. Explain Why Tests
-  test("ExplainWhy: Resolves Windows paths, relative paths, and symbols", () => {
+  await test("ExplainWhy: Resolves Windows paths, relative paths, and symbols", () => {
     const mockState = {
       project: { name: "test-app" },
       requirements: [{ id: "REQ-001", text: "Authenticate all requests", linkedFiles: ["app/core/deps.py"] }],
@@ -249,7 +250,7 @@ async function runTests() {
   });
 
   // 7. Context Generation Tests
-  test("Context Generation: Produces file-grounded AGENTS.md with validation commands", () => {
+  await test("Context Generation: Produces file-grounded AGENTS.md with validation commands", () => {
     const mockState = {
       project: { name: "test-app" },
       requirements: [{ id: "REQ-001", text: "Implement OAuth authentication", tags: ["auth"], linkedFiles: ["app/core/deps.py"] }],
@@ -283,7 +284,7 @@ async function runTests() {
   });
 
   // 8. Atomic State Writes & Schema Migration
-  test("VibeStore: Performs atomic file writes and schema migrations", () => {
+  await test("VibeStore: Performs atomic file writes and schema migrations", () => {
     const tempDir = path.resolve("./.vibe-test-scratch");
     if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
     fs.mkdirSync(tempDir, { recursive: true });
@@ -303,7 +304,7 @@ async function runTests() {
   });
 
   // 9. VS Code Manifest Parity Check
-  test("VS Code Extension: 100% command parity between manifest and registrations", () => {
+  await test("VS Code Extension: 100% command parity between manifest and registrations", () => {
     const pkgJsonPath = path.resolve("./packages/vscode-extension/package.json");
     const extTsPath = path.resolve("./packages/vscode-extension/src/extension.ts");
 
@@ -319,6 +320,98 @@ async function runTests() {
         true,
         `Command ${cmd} in package.json must be registered in extension.ts`
       );
+    }
+  });
+
+  // 10. Automated VS Code Command Execution Tests
+  await test("VS Code Extension: Automated execution test of all 23 registered commands", async () => {
+    const extDistPath = path.resolve("./packages/vscode-extension/dist/extension.js");
+    const registeredCommands = new Map();
+
+    const mockVscode = {
+      TreeItem: class TreeItem {
+        constructor(label, collapsibleState) {
+          this.label = label;
+          this.collapsibleState = collapsibleState;
+        }
+      },
+      TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
+      ThemeIcon: class ThemeIcon {
+        constructor(id) { this.id = id; }
+      },
+      EventEmitter: class EventEmitter {
+        constructor() {
+          this.event = (listener) => {};
+        }
+        fire() {}
+      },
+      window: {
+        createOutputChannel: () => ({
+          append: () => {},
+          appendLine: () => {},
+          show: () => {}
+        }),
+        registerTreeDataProvider: () => {},
+        showInformationMessage: () => {},
+        showWarningMessage: () => {},
+        showErrorMessage: () => {},
+        showInputBox: async (opts) => opts?.value || "test-arg",
+        activeTextEditor: undefined
+      },
+      workspace: {
+        workspaceFolders: [{ uri: { fsPath: process.cwd() } }],
+        createFileSystemWatcher: () => ({
+          onDidChange: () => {},
+          onDidCreate: () => {}
+        }),
+        getConfiguration: () => ({
+          get: () => undefined
+        })
+      },
+      commands: {
+        registerCommand: (name, handler) => {
+          registeredCommands.set(name, handler);
+          return { dispose: () => {} };
+        }
+      }
+    };
+
+    const originalLoad = Module._load;
+    Module._load = function (request, parent, isMain) {
+      if (request === "vscode") {
+        return mockVscode;
+      }
+      return originalLoad.apply(this, arguments);
+    };
+
+    try {
+      const extModule = await import(`file://${extDistPath.replace(/\\/g, "/")}?v=${Date.now()}`);
+      const mockContext = {
+        subscriptions: [],
+        extension: { packageJSON: { version: "0.4.7" } }
+      };
+
+      extModule.activate(mockContext);
+
+      const pkgJsonPath = path.resolve("./packages/vscode-extension/package.json");
+      const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, "utf-8"));
+      const manifestCommands = pkgJson.contributes.commands.map((c) => c.command);
+
+      assert.strictEqual(manifestCommands.length >= 23, true);
+
+      // Verify and execute every manifest command
+      for (const cmd of manifestCommands) {
+        assert.strictEqual(
+          registeredCommands.has(cmd),
+          true,
+          `Command ${cmd} must be registered`
+        );
+        const handler = registeredCommands.get(cmd);
+        assert.strictEqual(typeof handler, "function", `Handler for ${cmd} must be callable`);
+        await handler();
+      }
+    } finally {
+      Module._load = originalLoad;
     }
   });
 

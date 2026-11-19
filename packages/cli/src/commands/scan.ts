@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import { VibeStore, scanProject, rebuildCodeGraph, recordInferredDecisions } from "vibe-dev-core";
+import { VibeStore, scanProject, rebuildCodeGraph, recordInferredDecisions, verifyRequirement } from "vibe-dev-core";
 
 export function registerScan(program: Command) {
   program
@@ -31,6 +31,15 @@ export function registerScan(program: Command) {
         state.lastScan = model;
         rebuildCodeGraph(state, model);
         const inferred = recordInferredDecisions(state);
+
+        // Evidence-based requirements verification
+        for (const req of state.requirements) {
+          const report = verifyRequirement(root, state, req.id);
+          if (report) {
+            req.status = report.status;
+          }
+        }
+
         store.set(state);
         store.save();
 
