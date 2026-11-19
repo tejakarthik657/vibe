@@ -151,13 +151,13 @@ export class SQLiteStorageAdapter implements StorageAdapter {
     };
   }
 
-  public async saveOverride(id: string, overrideData: { acceptedBy: string; reason: string; timestamp: string }): Promise<boolean> {
+  public async saveOverride(id: string, overrideData: { acceptedBy: string; reason: string; timestamp: string; userAction?: "ALLOW" | "BLOCK" }): Promise<boolean> {
     await this.initialize();
     if (!this.db) return false;
     const rec = await this.getDecisionLog(id);
     if (!rec) return false;
     rec.override = overrideData;
-    rec.resolvedAction = "ALLOW";
+    rec.resolvedAction = overrideData.userAction || "ALLOW";
     await this.logDecision(rec);
     return true;
   }

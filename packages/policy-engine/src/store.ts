@@ -82,10 +82,15 @@ export class DecisionStore {
     };
 
     record.override = override;
-    record.resolvedAction = "ALLOW";
+    record.resolvedAction = userAction;
     fs.writeFileSync(this.logPath, JSON.stringify(logs, null, 2), "utf-8");
 
-    this.storage.saveOverride(decisionId, { acceptedBy: overrideBy, reason, timestamp: override.timestamp }).catch(() => {});
+    this.storage.saveOverride(decisionId, {
+      acceptedBy: overrideBy,
+      reason,
+      timestamp: override.timestamp,
+      userAction,
+    }).catch(() => {});
 
     return record;
   }

@@ -64,12 +64,12 @@ export class JSONStorageAdapter implements StorageAdapter {
     return logs.find((l) => l.id === id) || null;
   }
 
-  public async saveOverride(id: string, overrideData: { acceptedBy: string; reason: string; timestamp: string }): Promise<boolean> {
+  public async saveOverride(id: string, overrideData: { acceptedBy: string; reason: string; timestamp: string; userAction?: "ALLOW" | "BLOCK" }): Promise<boolean> {
     const logs = await this.getDecisionLogs();
     const rec = logs.find((l) => l.id === id);
     if (!rec) return false;
     rec.override = overrideData;
-    rec.resolvedAction = "ALLOW";
+    rec.resolvedAction = overrideData.userAction || "ALLOW";
     fs.writeFileSync(this.decisionsPath, JSON.stringify(logs, null, 2), "utf-8");
     return true;
   }

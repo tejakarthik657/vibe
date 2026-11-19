@@ -105,7 +105,7 @@ export function registerGuard(program: Command) {
         console.log(chalk.dim(`Affected requirements: ${report.affectedRequirements.join(", ")}`));
       }
       if (logRecord.resolvedAction === "REVIEW" || logRecord.resolvedAction === "BLOCK") {
-        console.log(chalk.dim(`\n  Tip: Run \`vibe decisions\` to inspect evidence, or \`vibe decision accept ${logRecord.id}\` to override.`));
+        console.log(chalk.dim(`\n  Tip: Run \`vibe decisions\` to inspect evidence, or \`vibe override ${logRecord.id} -r "reason"\` to override.`));
       }
 
       if (logRecord.resolvedAction === "BLOCK") process.exitCode = 1;

@@ -1,4 +1,6 @@
 import simpleGit, { SimpleGit } from "simple-git";
+import * as fs from "fs";
+import * as path from "path";
 
 export interface DiffSummary {
   isRepo: boolean;
@@ -8,6 +10,16 @@ export interface DiffSummary {
   raw: string;
 }
 
+const UNTRACKED_IGNORE_PREFIXES = [
+  'node_modules/', '.venv/', 'venv/', 'env/', 'dist/', 'build/', '.next/',
+  'coverage/', '__pycache__/', '.pytest_cache/', 'site-packages/', 'target/',
+  'out/', '.mypy_cache/', 'htmlcov/', 'alembic/versions/', '.git/'
+];
+
+function isUntrackedIgnored(filePath: string): boolean {
+  return UNTRACKED_IGNORE_PREFIXES.some((prefix) => filePath.startsWith(prefix));
+}
+
 export async function getWorkingDiff(root: string): Promise<DiffSummary> {
   const git: SimpleGit = simpleGit(root);
   const isRepo = await git.checkIsRepo().catch(() => false);
@@ -15,9 +27,13 @@ export async function getWorkingDiff(root: string): Promise<DiffSummary> {
     return { isRepo: false, changedFiles: [], insertions: 0, deletions: 0, raw: "" };
   }
   const status = await git.status();
+
+  // Filter untracked files through the ignore prefix list
+  const filteredUntracked = status.not_added.filter((f) => !isUntrackedIgnored(f));
+
   const changedFiles = [
     ...status.modified,
-    ...status.not_added,
+    ...filteredUntracked,
     ...status.created,
     ...status.renamed.map((r) => r.to),
   ];
@@ -31,6 +47,17 @@ export async function getWorkingDiff(root: string): Promise<DiffSummary> {
     deletions = summary.deletions;
   } catch {
     /* no diff available (e.g. no prior commit) */
+  }
+  // `git diff` omits untracked files, but guard must inspect them for secrets.
+  // Only scan filtered untracked files, capped at 200.
+  const untrackedToScan = filteredUntracked.slice(0, 200);
+  for (const file of untrackedToScan) {
+    try {
+      const content = fs.readFileSync(path.join(root, file), "utf-8");
+      raw += `\n+++ ${file}\n${content.split("\n").map((line) => `+${line}`).join("\n")}\n`;
+    } catch {
+      /* unreadable untracked file */
+    }
   }
   return { isRepo: true, changedFiles: Array.from(new Set(changedFiles)), insertions, deletions, raw };
 }

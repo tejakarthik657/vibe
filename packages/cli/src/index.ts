@@ -29,7 +29,7 @@ program
   .name("vibe")
   .allowUnknownOption()
   .description("VIBE — the engineering intelligence layer for AI-assisted development.")
-  .version("0.3.0");
+  .version("0.4.2");
 
 // Foundation
 registerInit(program);
@@ -66,7 +66,7 @@ const knownCommands = [
   "init", "scan", "adopt", "status", "requirement", "req", "decision", "adr",
   "context", "trace", "why", "doctor", "guard", "constraint", "con", "task",
   "architect", "drift", "impact", "checkpoint", "explain", "onboard", "welcome",
-  "install-hooks", "hooks", "bootstrap", "decisions", "config", "test-providers",
+  "install-hooks", "hooks", "bootstrap", "decisions", "override", "config", "test-providers",
   "migrate-storage", "help"
 ];
 

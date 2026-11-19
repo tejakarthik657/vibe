@@ -183,7 +183,7 @@ VIBE GUARD (Decision Intelligence V2)
 Evaluated Decision: DEC-004 (Provider: groq-llm, Confidence: 0.40 [LOW])
 Action:             REVIEW
 
-  Tip: Run `vibe decisions` to inspect evidence, or `vibe decision accept DEC-004` to override.
+  Tip: Run `vibe decisions` to inspect evidence, or `vibe override DEC-004 -r "reason"` to override.
 ```
 
 #### 16. `vibe guard --no-ai`
@@ -289,11 +289,11 @@ Displays the full decision audit history with assigned confidence tiers and prov
 vibe decisions
 ```
 
-#### 22. `vibe decision accept <id> -r "<reason>"`
+#### 22. `vibe override <id> -r "<reason>"`
 Overrides an automated `REVIEW` or `BLOCK` decision and automatically generates an Architectural Decision Record (ADR).
 
 ```bash
-vibe decision accept DEC-004 -r "MongoDB introduced intentionally for analytics service"
+vibe override DEC-004 -r "MongoDB introduced intentionally for analytics service"
 ```
 
 ---
@@ -361,7 +361,7 @@ All CLI features are accessible natively through the VS Code Command Palette:
 | `VIBE: Analyze File Impact & Blast Radius` | Analyzes the active editor file for transitive blast radius and dependencies. |
 | `VIBE: Check Architecture Drift` | Runs `vibe drift` to inspect undeclared framework imports. |
 | `VIBE: Show Decision History & Audit Trail` | Opens the decision log history (`vibe decisions`). |
-| `VIBE: Accept & Override Decision` | Prompts for a Decision ID and reason, executing `vibe decision accept`. |
+| `VIBE: Accept & Override Decision` | Prompts for a Decision ID and reason, executing `vibe override`. |
 | `VIBE: Test Decision Providers Benchmark` | Runs `vibe test-providers` benchmark suite in the editor. |
 | `VIBE: Migrate Storage to SQLite` | Migrates state into `.vibe/vibe.db` without leaving VS Code. |
 | `VIBE: Trace Symbol Definition & Callers` | Prompts for a symbol name and displays graph references (`vibe trace`). |

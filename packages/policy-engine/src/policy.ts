@@ -50,6 +50,18 @@ export function evaluatePolicy(
 ): { action: PolicyAction; finalConfidence: number; ruleApplied?: PolicyRule } {
   const finalConfidence = calculateFinalConfidence(result);
   const category = request.category || "general";
+  const highestEvidenceWeight = request.evidence.reduce(
+    (highest, evidence) => Math.max(highest, evidence.weight),
+    0
+  );
+
+  // Deterministic safety evidence must never be downgraded by provider confidence.
+  if (highestEvidenceWeight >= 0.85) {
+    return {
+      action: "BLOCK",
+      finalConfidence,
+    };
+  }
   
   const rule = config.rules.find((r) => r.category === category);
   
@@ -61,7 +73,10 @@ export function evaluatePolicy(
   }
 
   const isHighConfidence = finalConfidence >= rule.minConfidence;
-  const action = isHighConfidence ? rule.actionOnHighConfidence : rule.actionOnLowConfidence;
+  let action = isHighConfidence ? rule.actionOnHighConfidence : rule.actionOnLowConfidence;
+  if (highestEvidenceWeight >= 0.4 && action === "ALLOW") {
+    action = "REVIEW";
+  }
 
   return {
     action,

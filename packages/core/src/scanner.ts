@@ -36,6 +36,7 @@ const FRAMEWORK_DEPENDENCY_MAP: Record<string, string> = {
   fastapi: "FastAPI",
   "spring-boot": "Spring Boot",
   rails: "Ruby on Rails",
+  vite: "Vite",
 };
 
 const IGNORE = [
@@ -46,30 +47,127 @@ const IGNORE = [
   "**/.next/**",
   "**/coverage/**",
   "**/.vibe/**",
+  "**/venv/**",
+  "**/.venv/**",
+  "**/env/**",
+  "**/.env/**",
+  "**/vendor/**",
+  "**/site-packages/**",
+  "**/target/**",
+  "**/out/**",
+  // Extended Python / tooling ignores
+  "**/__pycache__/**",
+  "**/*.pyc",
+  "**/.pytest_cache/**",
+  "**/alembic/versions/**",
+  "**/htmlcov/**",
+  "**/.mypy_cache/**",
+];
+
+/** Python requirements.txt dep → human-readable label */
+const PYTHON_DEP_MAP: { pattern: RegExp; label: string }[] = [
+  // Frameworks (keep parity with package.json detection)
+  { pattern: /^django\b/i, label: "Django" },
+  { pattern: /^flask\b/i, label: "Flask" },
+  { pattern: /^fastapi\b/i, label: "FastAPI" },
+  // Databases
+  { pattern: /^sqlalchemy\b/i, label: "[DB] PostgreSQL/SQLAlchemy" },
+  { pattern: /^psycopg2\b/i, label: "[DB] PostgreSQL" },
+  { pattern: /^asyncpg\b/i, label: "[DB] PostgreSQL" },
+  { pattern: /^redis\b/i, label: "[DB] Redis" },
+  { pattern: /^qdrant-client\b/i, label: "[DB] Qdrant" },
+  { pattern: /^motor\b/i, label: "[DB] MongoDB" },
+  { pattern: /^pymongo\b/i, label: "[DB] MongoDB" },
+  // AI / ML
+  { pattern: /^anthropic\b/i, label: "Anthropic/Claude" },
+  { pattern: /^openai\b/i, label: "OpenAI" },
+  { pattern: /^voyageai\b/i, label: "Voyage AI" },
+  { pattern: /^groq\b/i, label: "Groq" },
+  { pattern: /^langchain\b/i, label: "LangChain" },
+  { pattern: /^transformers\b/i, label: "HuggingFace Transformers" },
+  // Task queues
+  { pattern: /^celery\b/i, label: "Celery" },
+  { pattern: /^dramatiq\b/i, label: "Dramatiq" },
+  { pattern: /^rq\b/i, label: "RQ" },
 ];
 
 function detectFrameworks(root: string): string[] {
   const found = new Set<string>();
-  const pkgPath = path.join(root, "package.json");
-  if (fs.existsSync(pkgPath)) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
-      for (const dep of Object.keys(deps)) {
-        if (FRAMEWORK_DEPENDENCY_MAP[dep]) found.add(FRAMEWORK_DEPENDENCY_MAP[dep]);
-      }
-    } catch {
-      /* ignore malformed package.json */
+
+  // --- Top-level package.json ---
+  const topPkgPath = path.join(root, "package.json");
+  if (fs.existsSync(topPkgPath)) {
+    _readPackageJsonDeps(topPkgPath, found);
+  }
+
+  // --- Sub-directory package.json files (up to 3 levels deep) ---
+  // Pattern: */package.json  **/package.json up to depth 3
+  const subPkgGlob = [
+    "*/package.json",
+    "*/*/package.json",
+    "*/*/*/package.json",
+  ];
+  for (const pattern of subPkgGlob) {
+    const matches = fg.sync(pattern, { cwd: root, ignore: IGNORE, dot: false });
+    for (const rel of matches) {
+      const abs = path.join(root, rel);
+      _readPackageJsonDeps(abs, found);
     }
   }
+
+  // --- requirements.txt ---
   const reqPath = path.join(root, "requirements.txt");
   if (fs.existsSync(reqPath)) {
-    const text = fs.readFileSync(reqPath, "utf-8").toLowerCase();
-    if (text.includes("django")) found.add("Django");
-    if (text.includes("flask")) found.add("Flask");
-    if (text.includes("fastapi")) found.add("FastAPI");
+    try {
+      const lines = fs.readFileSync(reqPath, "utf-8").split("\n");
+      for (const rawLine of lines) {
+        // Strip comments and version specifiers
+        const dep = rawLine.split("#")[0].trim().split(/[>=<![\s]/)[0].toLowerCase();
+        if (!dep) continue;
+        for (const { pattern, label } of PYTHON_DEP_MAP) {
+          if (pattern.test(dep)) {
+            found.add(label);
+            break;
+          }
+        }
+      }
+    } catch {
+      /* ignore unreadable */
+    }
   }
+
+  // --- Docker ---
+  if (
+    fs.existsSync(path.join(root, "docker-compose.yml")) ||
+    fs.existsSync(path.join(root, "docker-compose.yaml")) ||
+    fs.existsSync(path.join(root, "Dockerfile"))
+  ) {
+    found.add("Docker");
+  }
+
+  // --- Vite config anywhere in the project ---
+  const viteConfigs = fg.sync(["**/vite.config.ts", "**/vite.config.js"], {
+    cwd: root,
+    ignore: IGNORE,
+    dot: false,
+  });
+  if (viteConfigs.length > 0) {
+    found.add("Vite");
+  }
+
   return Array.from(found);
+}
+
+function _readPackageJsonDeps(pkgPath: string, found: Set<string>): void {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+    const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+    for (const dep of Object.keys(deps)) {
+      if (FRAMEWORK_DEPENDENCY_MAP[dep]) found.add(FRAMEWORK_DEPENDENCY_MAP[dep]);
+    }
+  } catch {
+    /* ignore malformed package.json */
+  }
 }
 
 function moduleOf(root: string, filePath: string): string {
@@ -81,39 +179,66 @@ function moduleOf(root: string, filePath: string): string {
   return "root";
 }
 
-function analyzePythonFile(filePath: string): { imports: string[]; funcs: string[]; classes: string[] } {
+function analyzePythonFile(
+  filePath: string
+): { imports: string[]; funcs: string[]; classes: string[]; routes: string[] } {
   const imports: string[] = [];
   const funcs: string[] = [];
   const classes: string[] = [];
+  const routes: string[] = [];
   try {
     const text = fs.readFileSync(filePath, "utf-8");
     const lines = text.split("\n");
+    let pendingRouteDecorator: string | null = null;
+
     for (const line of lines) {
       const trimmed = line.trim();
-      const fromImport = trimmed.match(/^from\s+([.\w]+)\s+import\s+/);
+
+      // Route decorators: @app.route("/path"), @router.get("/path"), @router.post("/path"), etc.
+      const routeDecoratorMatch = trimmed.match(
+        /^@(?:\w+)\.(?:route|get|post|put|patch|delete|head|options)\s*\(\s*["']([^"']+)["']/
+      );
+      if (routeDecoratorMatch) {
+        pendingRouteDecorator = routeDecoratorMatch[1];
+        continue;
+      }
+
+      // Imports
+      const fromImport = trimmed.match(/^from\s+([\.\w]+)\s+import\s+/);
       if (fromImport) {
         imports.push(fromImport[1]);
+        pendingRouteDecorator = null;
         continue;
       }
-      const plainImport = trimmed.match(/^import\s+([.\w]+)/);
+      const plainImport = trimmed.match(/^import\s+([\.\w]+)/);
       if (plainImport) {
         imports.push(plainImport[1]);
+        pendingRouteDecorator = null;
         continue;
       }
-      const funcMatch = trimmed.match(/^def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/);
+
+      // Functions (sync and async)
+      const funcMatch = trimmed.match(/^(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/);
       if (funcMatch) {
         funcs.push(funcMatch[1]);
+        if (pendingRouteDecorator !== null) {
+          routes.push(`route:${pendingRouteDecorator}`);
+          pendingRouteDecorator = null;
+        }
         continue;
       }
+
+      // Classes
       const classMatch = trimmed.match(/^class\s+([A-Za-z_][A-Za-z0-9_]*)/);
       if (classMatch) {
         classes.push(classMatch[1]);
+        pendingRouteDecorator = null;
       }
     }
   } catch {
     /* best effort */
   }
-  return { imports, funcs, classes };
+  return { imports, funcs, classes, routes };
 }
 
 function analyzeTsJsFile(filePath: string): { imports: string[]; funcs: string[]; classes: string[] } {
@@ -154,6 +279,8 @@ export async function scanProject(root: string): Promise<ProjectModel> {
   const languages: Record<string, number> = {};
   const files: FileRecord[] = [];
   const modulesSet = new Set<string>();
+  let totalFiles = 0;
+  let successfullyAnalyzed = 0;
 
   for (const relPath of entries) {
     const abs = path.join(root, relPath);
@@ -161,6 +288,7 @@ export async function scanProject(root: string): Promise<ProjectModel> {
     const language = LANGUAGE_BY_EXT[ext];
     if (!language) continue;
 
+    totalFiles++;
     languages[language] = (languages[language] || 0) + 1;
     const mod = moduleOf(root, abs);
     modulesSet.add(mod);
@@ -168,7 +296,9 @@ export async function scanProject(root: string): Promise<ProjectModel> {
     let imports: string[] = [];
     let funcs: string[] = [];
     let classes: string[] = [];
+    let routes: string[] = [];
     let lines = 0;
+    let analyzed = false;
 
     try {
       const content = fs.readFileSync(abs, "utf-8");
@@ -178,26 +308,36 @@ export async function scanProject(root: string): Promise<ProjectModel> {
         imports = analysis.imports;
         funcs = analysis.funcs;
         classes = analysis.classes;
+        analyzed = true;
       } else if (language === "Python") {
         const analysis = analyzePythonFile(abs);
         imports = analysis.imports;
         funcs = analysis.funcs;
         classes = analysis.classes;
+        routes = analysis.routes;
+        analyzed = true;
+      } else {
+        // Other supported languages: counted but not deeply analyzed
+        analyzed = true;
       }
     } catch {
       /* skip unreadable files */
     }
+
+    if (analyzed) successfullyAnalyzed++;
 
     files.push({
       path: relPath,
       language,
       lines,
       imports,
-      exportsFunctions: funcs,
+      exportsFunctions: [...funcs, ...routes],
       exportsClasses: classes,
       module: mod,
     });
   }
+
+  const scanConfidence = totalFiles > 0 ? successfullyAnalyzed / totalFiles : 1;
 
   return {
     languages,
@@ -205,5 +345,6 @@ export async function scanProject(root: string): Promise<ProjectModel> {
     modules: Array.from(modulesSet).sort(),
     files,
     scannedAt: new Date().toISOString(),
-  };
+    scanConfidence,
+  } as ProjectModel & { scanConfidence: number };
 }

@@ -14,6 +14,17 @@ const SECRET_PATTERNS: { name: string; regex: RegExp }[] = [
   { name: "Private key block", regex: /-----BEGIN (RSA |EC )?PRIVATE KEY-----/ },
 ];
 
+/**
+ * Derives a dotted Python module path from a file path.
+ * e.g. "app/core/deps.py" → "app.core.deps"
+ */
+function toPythonModulePath(filePath: string): string {
+  return filePath
+    .replace(/\\/g, "/")
+    .replace(/\.py$/, "")
+    .replace(/\//g, ".");
+}
+
 export function runDoctor(root: string, state: VibeState): DoctorFinding[] {
   const findings: DoctorFinding[] = [];
 
@@ -30,15 +41,15 @@ export function runDoctor(root: string, state: VibeState): DoctorFinding[] {
     return findings;
   }
 
+  // Test coverage — all languages
   const testFiles = model.files.filter((f) => /(test|spec)/i.test(f.path));
   if (testFiles.length === 0) {
     findings.push({ severity: "critical", message: "No test files detected anywhere in the project." });
   } else {
-    const nonTestSourceFiles = model.files.filter(
-      (f) => !/(test|spec)/i.test(f.path) && (f.language === "TypeScript" || f.language === "JavaScript")
-    );
+    // Compare against ALL non-test source files (all languages)
+    const nonTestSourceFiles = model.files.filter((f) => !/(test|spec)/i.test(f.path));
     const ratio = testFiles.length / Math.max(1, nonTestSourceFiles.length);
-    if (ratio < 0.15) {
+    if (ratio < 0.1) {
       findings.push({
         severity: "high",
         message: `Low test coverage signal: ${testFiles.length} test file(s) vs ${nonTestSourceFiles.length} source file(s).`,
@@ -77,8 +88,20 @@ export function runDoctor(root: string, state: VibeState): DoctorFinding[] {
     findings.push({ severity: "low", message: `${todoCount} TODO/FIXME marker(s) found across the codebase.` });
   }
 
+  // Requirement verification — improved to handle Python module paths too
   const requirementsWithoutTests = state.requirements.filter((r) => {
-    return !r.linkedFiles.some((f) => testFiles.some((t) => t.path.toLowerCase().includes(f.split("/").pop()!.replace(/\.[jt]sx?$/, "").toLowerCase())));
+    return !r.linkedFiles.some((linkedFile) => {
+      const basename = linkedFile.split("/").pop()!.replace(/\.[jt]sx?$/, "").replace(/\.py$/, "").toLowerCase();
+      const pyModulePath = toPythonModulePath(linkedFile);
+
+      return testFiles.some((t) => {
+        // Check 1: test file path includes the source file's basename
+        if (t.path.toLowerCase().includes(basename)) return true;
+        // Check 2: test file imports array contains the dotted Python module path
+        if (t.imports && t.imports.some((imp) => imp === pyModulePath || imp.endsWith(`.${pyModulePath}`))) return true;
+        return false;
+      });
+    });
   });
   for (const r of requirementsWithoutTests) {
     findings.push({ severity: "high", message: `Requirement ${r.id} has no detected verifying test.` });

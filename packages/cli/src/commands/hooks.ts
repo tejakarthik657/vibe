@@ -37,7 +37,7 @@ export function registerHooks(program: Command) {
       const hookContent = `#!/bin/sh
 # VIBE Engineering Intelligence pre-commit guard
 echo "[VIBE] Running Pre-commit Guard..."
-npx vibe-engine guard
+npx --no-install vibe guard
 if [ $? -ne 0 ]; then
   echo "[BLOCKED] VIBE Guard blocked commit due to architectural risk, secrets, or missing coverage."
   echo "          Run 'vibe guard' to inspect findings or fix issues before committing."

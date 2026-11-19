@@ -1,66 +1,155 @@
 {
-  "name": "vibe-vscode-extension",
-  "displayName": "VIBE by DevFrames — Engineering Intelligence",
-  "publisher": "devframes",
-  "description": "See requirements, decisions and AI-change risk for the current project, powered by VIBE by DevFrames.",
-  "version": "0.4.3",
-  "icon": "resources/icon.jpg",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tejakarthik657/vibe.git"
-  },
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Other"],
-  "activationEvents": [
-    "workspaceContains:.vibe/state.json"
-  ],
-  "main": "./dist/extension.js",
-  "contributes": {
-    "commands": [
-      { "command": "vibe.scan", "title": "VIBE: Scan Project" },
-      { "command": "vibe.status", "title": "VIBE: Show Project Status" },
-      { "command": "vibe.doctor", "title": "VIBE: Run Doctor Diagnostics" },
-      { "command": "vibe.guard", "title": "VIBE: Guard Current Changes (Decision Intelligence)" },
-      { "command": "vibe.impact", "title": "VIBE: Analyze File Impact & Blast Radius" },
-      { "command": "vibe.drift", "title": "VIBE: Check Architecture Drift" },
-      { "command": "vibe.checkpoint", "title": "VIBE: Create Checkpoint" },
-      { "command": "vibe.explain", "title": "VIBE: Explain Architecture Graph" },
-      { "command": "vibe.context", "title": "VIBE: Generate AI Agent Context" },
-      { "command": "vibe.decisions", "title": "VIBE: Show Decision History & Audit Trail" },
-      { "command": "vibe.acceptDecision", "title": "VIBE: Accept & Override Decision" },
-      { "command": "vibe.testProviders", "title": "VIBE: Test Decision Providers Benchmark" },
-      { "command": "vibe.migrateStorage", "title": "VIBE: Migrate Storage to SQLite" },
-      { "command": "vibe.configShow", "title": "VIBE: Show Configuration" },
-      { "command": "vibe.trace", "title": "VIBE: Trace Symbol Definition & Callers" },
-      { "command": "vibe.why", "title": "VIBE: Why Does This File Exist?" },
-      { "command": "vibe.onboard", "title": "VIBE: Onboard Developer Walkthrough" },
-      { "command": "vibe.bootstrap", "title": "VIBE: Bootstrap Architecture Presets" },
-      { "command": "vibe.addRequirement", "title": "VIBE: Add Requirement" },
-      { "command": "vibe.addDecision", "title": "VIBE: Add Decision (ADR)" },
-      { "command": "vibe.addConstraint", "title": "VIBE: Add Constraint" },
-      { "command": "vibe.addTask", "title": "VIBE: Add Task" },
-      { "command": "vibe.refresh", "title": "VIBE: Refresh Sidebar" }
-    ],
-    "viewsContainers": {
-      "activitybar": [
-        { "id": "vibe", "title": "VIBE", "icon": "resources/icon.svg" }
-      ]
-    },
-    "views": {
-      "vibe": [
-        { "id": "vibeRequirements", "name": "Requirements" },
-        { "id": "vibeDecisions", "name": "Decisions" },
-        { "id": "vibeConstraints", "name": "Constraints" },
-        { "id": "vibeTasks", "name": "Tasks" }
-      ]
-    }
-  },
-  "scripts": {
-    "build": "tsc -p tsconfig.json"
-  },
-  "devDependencies": {
-    "@types/node": "^20.14.9",
-    "@types/vscode": "^1.85.0",
-    "typescript": "^5.5.4"
-  }
+    "name":  "vibe-vscode-extension",
+    "displayName":  "VIBE by DevFrames — Engineering Intelligence",
+    "publisher":  "devframes",
+    "description":  "See requirements, decisions and AI-change risk for the current project, powered by VIBE by DevFrames.",
+    "version":  "0.4.5",
+    "icon":  "resources/icon.jpg",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/tejakarthik657/vibe.git"
+                   },
+    "engines":  {
+                    "vscode":  "^1.85.0"
+                },
+    "categories":  [
+                       "Other"
+                   ],
+    "activationEvents":  [
+                             "workspaceContains:.vibe/state.json"
+                         ],
+    "main":  "./dist/extension.js",
+    "contributes":  {
+                        "commands":  [
+                                         {
+                                             "command":  "vibe.scan",
+                                             "title":  "VIBE: Scan Project"
+                                         },
+                                         {
+                                             "command":  "vibe.status",
+                                             "title":  "VIBE: Show Project Status"
+                                         },
+                                         {
+                                             "command":  "vibe.doctor",
+                                             "title":  "VIBE: Run Doctor Diagnostics"
+                                         },
+                                         {
+                                             "command":  "vibe.guard",
+                                             "title":  "VIBE: Guard Current Changes (Decision Intelligence)"
+                                         },
+                                         {
+                                             "command":  "vibe.impact",
+                                             "title":  "VIBE: Analyze File Impact \u0026 Blast Radius"
+                                         },
+                                         {
+                                             "command":  "vibe.drift",
+                                             "title":  "VIBE: Check Architecture Drift"
+                                         },
+                                         {
+                                             "command":  "vibe.checkpoint",
+                                             "title":  "VIBE: Create Checkpoint"
+                                         },
+                                         {
+                                             "command":  "vibe.explain",
+                                             "title":  "VIBE: Explain Architecture Graph"
+                                         },
+                                         {
+                                             "command":  "vibe.context",
+                                             "title":  "VIBE: Generate AI Agent Context"
+                                         },
+                                         {
+                                             "command":  "vibe.decisions",
+                                             "title":  "VIBE: Show Decision History \u0026 Audit Trail"
+                                         },
+                                         {
+                                             "command":  "vibe.acceptDecision",
+                                             "title":  "VIBE: Accept \u0026 Override Decision"
+                                         },
+                                         {
+                                             "command":  "vibe.testProviders",
+                                             "title":  "VIBE: Test Decision Providers Benchmark"
+                                         },
+                                         {
+                                             "command":  "vibe.migrateStorage",
+                                             "title":  "VIBE: Migrate Storage to SQLite"
+                                         },
+                                         {
+                                             "command":  "vibe.configShow",
+                                             "title":  "VIBE: Show Configuration"
+                                         },
+                                         {
+                                             "command":  "vibe.trace",
+                                             "title":  "VIBE: Trace Symbol Definition \u0026 Callers"
+                                         },
+                                         {
+                                             "command":  "vibe.why",
+                                             "title":  "VIBE: Why Does This File Exist?"
+                                         },
+                                         {
+                                             "command":  "vibe.onboard",
+                                             "title":  "VIBE: Onboard Developer Walkthrough"
+                                         },
+                                         {
+                                             "command":  "vibe.bootstrap",
+                                             "title":  "VIBE: Bootstrap Architecture Presets"
+                                         },
+                                         {
+                                             "command":  "vibe.addRequirement",
+                                             "title":  "VIBE: Add Requirement"
+                                         },
+                                         {
+                                             "command":  "vibe.addDecision",
+                                             "title":  "VIBE: Add Decision (ADR)"
+                                         },
+                                         {
+                                             "command":  "vibe.addConstraint",
+                                             "title":  "VIBE: Add Constraint"
+                                         },
+                                         {
+                                             "command":  "vibe.addTask",
+                                             "title":  "VIBE: Add Task"
+                                         },
+                                         {
+                                             "command":  "vibe.refresh",
+                                             "title":  "VIBE: Refresh Sidebar"
+                                         }
+                                     ],
+                        "viewsContainers":  {
+                                                "activitybar":  [
+                                                                    {
+                                                                        "id":  "vibe",
+                                                                        "title":  "VIBE",
+                                                                        "icon":  "resources/icon.svg"
+                                                                    }
+                                                                ]
+                                            },
+                        "views":  {
+                                      "vibe":  [
+                                                   {
+                                                       "id":  "vibeRequirements",
+                                                       "name":  "Requirements"
+                                                   },
+                                                   {
+                                                       "id":  "vibeDecisions",
+                                                       "name":  "Decisions"
+                                                   },
+                                                   {
+                                                       "id":  "vibeConstraints",
+                                                       "name":  "Constraints"
+                                                   },
+                                                   {
+                                                       "id":  "vibeTasks",
+                                                       "name":  "Tasks"
+                                                   }
+                                               ]
+                                  }
+                    },
+    "scripts":  {
+                    "build":  "tsc -p tsconfig.json"
+                },
+    "devDependencies":  {
+                            "@types/node":  "^20.14.9",
+                            "@types/vscode":  "^1.85.0",
+                            "typescript":  "^5.5.4"
+                        }
 }

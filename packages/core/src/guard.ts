@@ -25,13 +25,16 @@ function statusFromRisk(risk: number): "ok" | "warning" | "block" {
 export function runGuard(root: string, state: VibeState, diff: DiffSummary): GuardReport {
   const checks: GuardCheck[] = [];
 
-  // 1. Scope: how many files changed
-  const scopeRisk = Math.min(1, diff.changedFiles.length / 30);
+  // 1. Scope: how many source files changed (use source-file filter as safety net)
+  const sourceFiles = diff.changedFiles.filter((f) =>
+    /\.(py|tsx?|jsx?|java|go|rs|rb|cs|cpp|c|kt|swift)$/.test(f)
+  );
+  const scopeRisk = Math.min(1, sourceFiles.length / 20);
   checks.push({
     name: "Change scope",
     risk: scopeRisk,
     status: statusFromRisk(scopeRisk),
-    detail: `${diff.changedFiles.length} file(s) changed in working tree.`,
+    detail: `${sourceFiles.length} source file(s) changed (${diff.changedFiles.length} total in working tree).`,
   });
 
   // 2. Requirement impact: changed files that are linked to requirements

@@ -24,5 +24,5 @@ export interface StorageAdapter {
   logDecision(record: DecisionLogRecord): Promise<void>;
   getDecisionLogs(): Promise<DecisionLogRecord[]>;
   getDecisionLog(id: string): Promise<DecisionLogRecord | null>;
-  saveOverride(id: string, overrideData: { acceptedBy: string; reason: string; timestamp: string }): Promise<boolean>;
+  saveOverride(id: string, overrideData: { acceptedBy: string; reason: string; timestamp: string; userAction?: "ALLOW" | "BLOCK" }): Promise<boolean>;
 }

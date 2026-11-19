@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { VibeStore, traceRequirement } from "vibe-dev-core";
+import { VibeStore, traceRequirement, traceSymbol } from "vibe-dev-core";
 
 export function registerTrace(program: Command) {
   program
@@ -35,8 +35,22 @@ export function registerTrace(program: Command) {
 
       const result = traceRequirement(state, reqId);
       if (!result) {
-        console.log(chalk.red(`No requirement matching "${query}" found.`));
-        process.exitCode = 1;
+        const symbolResult = traceSymbol(state, query);
+        if (symbolResult.definitions.length === 0) {
+          console.log(chalk.red(`No requirement or symbol matching "${query}" found.`));
+          process.exitCode = 1;
+          return;
+        }
+        console.log(chalk.bold(`Symbol: ${symbolResult.symbol}`));
+        console.log("");
+        console.log(chalk.bold("Definitions:"));
+        console.log(symbolResult.definitions.map((file) => `  - ${file}`).join("\n"));
+        console.log("");
+        console.log(chalk.bold("Likely tests:"));
+        console.log(symbolResult.likelyTests.length ? symbolResult.likelyTests.map((file) => `  - ${file}`).join("\n") : "  (none found)");
+        console.log("");
+        console.log(chalk.bold("Dependent files:"));
+        console.log(symbolResult.dependents.length ? symbolResult.dependents.map((file) => `  - ${file}`).join("\n") : "  (none tracked)");
         return;
       }
       console.log(chalk.bold(`${result.requirementId}`), result.requirementText);

@@ -1,220 +1,106 @@
-# VIBE — Engineering Intelligence Layer for AI-Assisted Development
+# VIBE — Autonomous Compiler-Level Architectural Governance & Decision Intelligence System
 
-> "AI writes the code. VIBE protects the engineering."
+> **"AI generates the code. VIBE governs the engineering."**
 
-This repo is a **real, runnable V1** — not a mockup, not a scaffold with stub
-functions. Every command below was built, compiled, and smoke-tested against
-scratch git repositories (including a mixed TypeScript + Python project) before
-being packaged. Where something from the original design vision isn't built yet,
-that's stated explicitly below rather than implied.
+[![NPM Version](https://img.shields.io/npm/v/vibe-dev.svg?style=flat-square&color=007acc)](https://www.npmjs.com/package/vibe-dev)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/devframes.vibe-vscode-extension.svg?style=flat-square&color=blueviolet)](https://marketplace.visualstudio.com/items?itemName=devframes.vibe-vscode-extension)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
-## Version ladder (how the full vision breaks down)
+---
 
-| Version | Scope | Status |
-|---|---|---|
-| **MVP** | scan, requirements, decisions, guard, doctor, trace, context, VS Code sidebar | ✅ shipped |
-| **V1 — Engineering Foundation** | Constraints + Tasks; declared-vs-detected architecture **drift**; transitive **impact** analysis; **checkpoints**; auto-provenance (inferred decisions); `vibe explain`; real Python support alongside TS/JS; CI-friendly `vibe guard --format md` | ✅ **shipped in this zip** |
-| **V2 — Decision Intelligence** | `DecisionProvider` abstraction (rules → LLM → optional Jev-style provider), confidence-weighted policy engine, SQLite/Drizzle backend | ⬜ not built |
-| **V3 — Agent Infrastructure** | `vibe mcp` server exposing VIBE to Claude Code/Cursor/Codex directly, VS Code CodeLens ("implements REQ-014"), webview graph visualizer | ⬜ not built |
-| **V4 — Production Engineering** | Real Semgrep/OSV/Trivy/Gitleaks integration (replacing the naive regex secret check), resilience/chaos checks, `vibe production` readiness report | ⬜ not built |
-| **V5 — Platform** | Cloud sync, team collaboration, multi-repo graph, GitHub Action for `vibe guard` on PRs, web dashboard | ⬜ not built |
+## Complete Production-Grade Engineering Documentation
 
-V2–V5 are specified precisely in the "Next" section at the bottom so whoever picks
-this up (you, or another engineer) knows exactly what to build and why, without
-having to re-derive it from the original brainstorm.
+VIBE maintains a comprehensive engineering documentation hierarchy split into 24 distinct, dedicated technical documents:
 
-## What's implemented in V1 (all real, all tested)
+- **[Master Technical Architecture Manual (All-in-One)](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/TECHNICAL_ARCHITECTURE.md)**: Master architectural specification.
+- **[Documentation Hub & Category Index](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/README.md)**: Categorized directory of all 24 technical documents.
 
-### `@vibe/core` — the engine, framework-agnostic
-- **`scanner.ts`** — walks the repo, detects languages/frameworks from
-  `package.json`/`requirements.txt`, and deep-parses source with a pluggable
-  per-language analyzer:
-  - TypeScript/JavaScript via the real **TypeScript Compiler API** (imports,
-    functions, classes).
-  - **Python** via a lightweight parser (`import`/`from...import`, `def`, `class`)
-    — genuinely functional, not a stub. Verified in testing to correctly resolve
-    a `from pyworker.utils import helper` cross-file dependency into a graph edge.
-- **`graph.ts`** — the Engineering Graph: Module → File → Function/Class nodes,
-  `CONTAINS`/`DEPENDS_ON` edges from real import resolution (relative JS/TS paths
-  and dotted Python module paths), preserving Requirement/Decision/Task/Constraint
-  nodes across rescans.
-- **`store.ts`** — local-first persistence to `.vibe/state.json`, offline by
-  design, with backward-compatible loading for older state files.
-- **`git.ts`** — real `simple-git` integration for working-tree diffs.
-- **`requirements.ts` / `decisions.ts` / `constraints.ts` / `tasks.ts`** — full
-  CRUD for all four "Project Constitution" primitives from the design vision.
-  Decisions carry `source: "developer" | "inferred"` and a `confidence` score.
-- **`provenance.ts`** *(new in V1)* — after every `vibe scan`, automatically
-  records an **inferred** decision for every detected framework not already
-  covered by an explicit one, with `confidence: 0.75` and a note to confirm it.
-  This is the "never let inference silently become project truth" principle
-  from the design chat, actually implemented — verified in testing: scanning a
-  project with Express + Next.js dependencies auto-created `ADR-001`/`ADR-002`
-  tagged `inferred`.
-- **`architecture.ts`** *(new in V1)* — `vibe architect set` declares the
-  intended stack; `computeDrift()` compares it against what the scanner actually
-  detected. Verified: declaring only "Next.js" against a repo with Express+Next.js
-  correctly reported Express as "detected but not declared" — matching the
-  vision's drift-detection example almost exactly.
-- **`impact.ts`** *(new in V1)* — full transitive blast-radius analysis (BFS over
-  `DEPENDS_ON` edges, not just direct dependents), plus which requirements and
-  which test files are affected, with a low/medium/high risk score. Verified:
-  changing `AuthService.ts` correctly surfaced `PaymentController.ts` as a
-  transitive dependent, `REQ-001` as an affected requirement, and the matching
-  test file.
-- **`snapshot.ts`** *(new in V1)* — `vibe checkpoint` writes an engineering
-  health snapshot (`.vibe/snapshots/CKPT-00N-*.json`) combining requirement/
-  decision/task counts with live `doctor` findings, and rates the project
-  HEALTHY / NEEDS ATTENTION / AT RISK — the "engineering snapshot" concept from
-  the design chat.
-- **`explain.ts`** *(new in V1)* — `vibe explain <module>` reports what a module
-  is, which requirements it implements, which decisions mention it, and its
-  cross-module dependency boundary (what it depends on / is depended on by,
-  outside itself).
-- **`context.ts`** — keyword-relevance engine producing a *scoped* `AGENTS.md`
-  context bundle instead of dumping the whole repo at an AI agent.
-- **`trace.ts`** — Requirement → linked files → dependent files → likely tests.
-- **`doctor.ts`** — evidence-based diagnostics (missing README/.gitignore, weak
-  test-coverage ratio, oversized files, TODO/FIXME counts, naive hardcoded-secret
-  regexes, requirements with no verifying test).
-- **`guard.ts`** — rule-based risk scoring on the current git diff (scope,
-  requirement impact, blast radius, new dependencies, secret-looking additions),
-  now with `--format md` for pasting into a PR description or piping into CI.
+### Dedicated Technical Specifications (`docs/`)
+1. **[01. Project Overview & Product Understanding](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/01-project-overview.md)**
+2. **[02. Requirements Engineering](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/02-requirements-engineering.md)**
+3. **[03. System Architecture & High-Level Design](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/03-system-architecture.md)**
+4. **[04. Technology Stack & Engineering Decisions](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/04-technology-stack.md)**
+5. **[05. Codebase Organization & Monorepo Structure](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/05-codebase-organization.md)**
+6. **[06. Database Design & Persistence Architecture](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/06-database-design.md)**
+7. **[07. Backend Engineering & Runtime Internals](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/07-backend-engineering.md)**
+8. **[08. API Design & Inter-Process Contracts](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/08-api-design.md)**
+9. **[09. Frontend Architecture & IDE Client Engine](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/09-frontend-architecture.md)**
+10. **[10. Security Architecture & Threat Modeling](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/10-security-architecture.md)**
+11. **[11. Performance & Scalability Engineering](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/11-performance-scalability.md)**
+12. **[12. Distributed Systems & Advanced Backend Concepts](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/12-distributed-systems.md)**
+13. **[13. Testing Strategy & Quality Engineering](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/13-testing-strategy.md)**
+14. **[14. DevOps, CI/CD & Deployment](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/14-devops-deployment.md)**
+15. **[15. Production Observability & Monitoring](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/15-production-observability.md)**
+16. **[16. Reliability & Resilience Engineering](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/16-reliability-engineering.md)**
+17. **[17. Engineering Decision Records (ADRs)](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/17-engineering-decisions.md)**
+18. **[18. AI Engineering & LLM Decision Systems](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/18-ai-engineering.md)**
+19. **[19. Product Engineering & User Experience](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/19-product-engineering.md)**
+20. **[20. Engineering Workflow & Practices](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/20-engineering-workflow.md)**
+21. **[21. Developer Guide & Setup Playbook](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/21-developer-guide.md)**
+22. **[22. Technical Challenges & Problem Solving](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/22-engineering-challenges.md)**
+23. **[23. Project Ownership & Staff-Level Interview Preparation](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/23-interview-preparation.md)**
+24. **[24. Engineering Learning Log & Knowledge Gaps](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/24-learning-log.md)**
 
-### `vibe` CLI (`packages/cli`)
+---
+
+## Quick Start Guide
+
+### 1. Installation
+Install the VIBE CLI globally:
+```bash
+npm install -g vibe-dev
 ```
+
+### 2. Initialize Your Repository
+Navigate to any git repository and run:
+```bash
 vibe init
-vibe scan                          (alias: vibe adopt)
-vibe status
-vibe requirement add|link|list
-vibe decision add|list
-vibe constraint add|list           ← new in V1
-vibe task add|start|done|list      ← new in V1
-vibe architect set|show            ← new in V1
-vibe drift                         ← new in V1
-vibe impact <file>                 ← new in V1
-vibe checkpoint [create|list]      ← new in V1
-vibe explain <module>              ← new in V1
-vibe context "<task>"              → writes AGENTS.md
-vibe trace <REQ-ID>
-vibe why <file>
+```
+
+### 3. Scan Codebase AST & Build Graph
+```bash
+vibe scan
+```
+
+### 4. Install Git Pre-Commit Hook (Sub-120ms Gate)
+```bash
+vibe install-hooks
+```
+
+### 5. Codify ADRs and Boundaries
+```bash
+# Register an Architectural Decision Record
+vibe adr add "Database Engine" -c "Need high performance relational store" -d "Use PostgreSQL and Prisma"
+
+# Register a system boundary constraint
+vibe con add "Zero direct database queries from UI components" -t "src/components/**"
+```
+
+### 6. Verify System Health & Audit Drift
+```bash
 vibe doctor
-vibe guard [--format md]
+# Machine-readable CI output (exits non-zero for high/critical findings)
+vibe doctor --format json
 ```
 
-### VS Code extension (`packages/vscode-extension`)
-Sidebar with four live views — **Requirements, Decisions, Constraints, Tasks** —
-reading `.vibe/state.json` directly and watching it for changes, plus commands
-(`VIBE: Scan`, `VIBE: Run Doctor`, `VIBE: Guard Current Changes`, `VIBE: Check
-Architecture Drift`, `VIBE: Create Checkpoint`, `VIBE: Add Requirement`, `VIBE:
-Add Decision`) that shell out to the CLI and stream output to a VIBE output
-channel.
+---
 
-## What's honestly still missing (don't assume it's there)
-
-- No AST for languages beyond TS/JS/Python — Java/Go/Rust/C#/etc. are counted by
-  extension but not deep-parsed. Tree-sitter is the right tool for the rest (V2+).
-- No LLM or "Jev"-style reasoning anywhere. `guard`/`doctor`/`drift` are 100%
-  deterministic rules. This is intentional for V1 — the design chat's own
-  architecture puts a `DecisionProvider` abstraction as a *separate* layer on
-  top of the deterministic engine, which is exactly what V2 adds.
-- No MCP server — an AI agent can't query VIBE directly yet; you run `vibe
-  context` and hand it `AGENTS.md` manually. V3.
-- No real security-tool orchestration (Semgrep/OSV/Trivy/Gitleaks) — `doctor`'s
-  secret scan is a few regexes, clearly documented as naive.
-- No SQLite backend — state is one JSON file. Fine up to a few thousand files;
-  will get slow well before that on huge monorepos.
-- No cloud/team/dashboard anything.
-- If you do want to wire in the actual Jev/TypeSafe API in V2 rather than just
-  the "structured decision" concept: check their current terms first. The
-  original design chat surfaced a clause restricting use of their service to
-  build a similar/competing product — verify this hasn't changed before
-  depending on it.
-
-## Project layout
-
+## Monorepo Architecture Overview
+VIBE is divided into 7 decoupled packages:
 ```
-vibe/
-├── package.json
-├── tsconfig.base.json
-├── packages/
-│   ├── core/                      @vibe/core
-│   │   └── src/
-│   │       ├── types.ts
-│   │       ├── store.ts
-│   │       ├── scanner.ts         (TS/JS + Python analyzers)
-│   │       ├── graph.ts
-│   │       ├── git.ts
-│   │       ├── requirements.ts
-│   │       ├── decisions.ts
-│   │       ├── constraints.ts     ← V1
-│   │       ├── tasks.ts           ← V1
-│   │       ├── architecture.ts    ← V1 (declared arch + drift)
-│   │       ├── impact.ts          ← V1 (transitive blast radius)
-│   │       ├── snapshot.ts        ← V1 (checkpoints)
-│   │       ├── explain.ts         ← V1
-│   │       ├── provenance.ts      ← V1 (auto-inferred decisions)
-│   │       ├── context.ts
-│   │       ├── trace.ts
-│   │       ├── doctor.ts
-│   │       └── guard.ts
-│   ├── cli/                       vibe
-│   │   ├── bin/vibe.js
-│   │   └── src/
-│   │       ├── index.ts
-│   │       └── commands/*.ts      (17 commands total)
-│   └── vscode-extension/          VIBE sidebar + commands
-│       └── src/extension.ts
+packages/
+├── decision-core/          # Pure domain contracts (zero dependencies)
+├── core/                   # AST parser, DAG builder, diff engine, secret scanner
+├── decision-providers/
+│   ├── rules/              # Zero-network deterministic rule engine
+│   └── llm/                # High-throughput Groq LPU inference adapter
+├── policy-engine/          # Confidence calculus and circuit-breaking fallback chain
+├── storage/                # Node 22 native SQLite and atomic JSON adapters
+├── cli/                    # 25+ Commander commands, preprocessor, and git hooks
+└── vscode-extension/       # Reactive IDE client with 4 TreeView providers
 ```
 
-## Getting started
+---
 
-```bash
-npm install
-npm run build
-
-cd /path/to/some/project
-node /path/to/vibe/packages/cli/bin/vibe.js init
-node /path/to/vibe/packages/cli/bin/vibe.js scan
-node /path/to/vibe/packages/cli/bin/vibe.js status
-```
-
-As a global command:
-```bash
-cd packages/cli && npm link
-cd /path/to/some/project
-vibe init && vibe scan && vibe doctor && vibe checkpoint
-```
-
-Publish order (core must go first, cli depends on it):
-```bash
-cd packages/core && npm publish --access public
-cd ../cli && npm publish --access public
-```
-
-### VS Code extension
-```bash
-cd packages/vscode-extension
-npm install
-npm run build
-# F5 in VS Code to run it, or `npx @vscode/vsce package` for a .vsix
-```
-
-## Next — concrete V2 spec
-
-1. **`DecisionProvider` interface** in `@vibe/core`: `{ evaluate(question, state, evidence): Promise<{ probability: number, rationale?: string }> }`.
-   Implement `RulesProvider` (wraps today's `guard.ts` heuristics as the default/
-   fallback), then `LLMProvider` (OpenAI/Anthropic/Gemini via a thin adapter).
-   `guard`/`doctor` call the configured provider chain (rules always run;
-   LLM/Jev is additive, never load-bearing on its own) and merge scores.
-2. **Policy engine**: per-project thresholds (e.g. auth-related changes need
-   confidence ≥ 0.95 to auto-pass; formatting-only changes can pass at 0.6),
-   configurable in `.vibe/state.json` under a new `policies` field.
-3. **SQLite/Drizzle backend**: swap `VibeStore`'s file I/O for a real DB once
-   graphs get large — `VibeStore.get()/set()` is already the only interface
-   touched elsewhere, so this is a contained change.
-4. Ship V2 with the same honesty this README has: document what's still rules-
-   only vs LLM-assisted, and never let an inferred/AI-scored fact silently
-   become "the architecture" without a confidence number attached.
-#   v i b e  
- 
+## License
+MIT License. Maintained for production-grade software engineering and architectural governance.

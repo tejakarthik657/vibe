@@ -223,7 +223,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (!decId) return;
       const reason = await vscode.window.showInputBox({ prompt: "Reason for override" });
       if (!reason) return;
-      runVibe(`decision accept ${decId} -r "${reason.replace(/"/g, '\\"')}"`, channel, refreshAll);
+      runVibe(`override ${decId} -r "${reason.replace(/"/g, '\\"')}"`, channel, refreshAll);
     }),
     vscode.commands.registerCommand("vibe.testProviders", () => runVibe("test-providers", channel)),
     vscode.commands.registerCommand("vibe.migrateStorage", () => runVibe("migrate-storage", channel, refreshAll)),
