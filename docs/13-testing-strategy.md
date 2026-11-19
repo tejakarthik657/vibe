@@ -32,10 +32,13 @@ When all the tests pass, they celebrate. Then they run the tool on a real reposi
 |                       | SQLite transactions & WAL   | directories with real Git  |
 +-----------------------+-----------------------------+----------------------------+
 | 3. Security Tests     | Synthetic secret injection, | Synthetic staged diffs     |
-|                       | false-positive filters      | asserting exit code 1      |
+|                       | false-positive filters      | asserting exit code 2 (BLOCK)|
 +-----------------------+-----------------------------+----------------------------+
 | 4. End-to-End Tests   | Full CLI workflow: init ->  | Headless spawned CLI       |
-|                       | scan -> adr -> commit gate  | subprocesses via execFile  |
+|                       | scan -> adr -> commit gate  | subprocesses via exec      |
++-----------------------+-----------------------------+----------------------------+
+| 5. Extension E2E Suite| Automated activation &      | Mocked VS Code runtime with|
+|                       | execution of all 23 commands| zero unhandled rejections  |
 +-----------------------+-----------------------------+----------------------------+
 ```
 
@@ -117,6 +120,8 @@ When an interviewer asks: *"How did you test this system, especially complex gra
 >
 > For graph algorithms, I built synthetic test fixtures with pathological topologies—including multi-node circular dependencies and disconnected subgraphs—to prove that our DFS 3-coloring algorithm terminates with the exact cyclic chain in $\mathcal{O}(V + E)$ time without stack overflow.
 >
-> For security scanning, I created test fixtures containing synthetic AWS keys, GitHub tokens, and high-entropy base64 strings to verify that `vibe guard` blocks them with exit code 1. Crucially, I also tested negative cases—such as 60-character camelCase variable names—to guarantee that our character-set entropy filtering prevents false positives.
+> For security scanning, I created test fixtures containing synthetic AWS keys, GitHub tokens, and high-entropy base64 strings to verify that `vibe guard` blocks them with exit code 2 (BLOCK). Crucially, I also tested negative cases—such as 60-character camelCase variable names—to guarantee that our character-set entropy filtering prevents false positives.
 >
-> Finally, we dogfood VIBE in our CI pipeline: GitHub Actions runs `vibe doctor` against our own monorepo to verify that our own packages maintain zero circular dependencies."*
+> In our comprehensive 13-test automated verification suite (`test/suite.js`), we validate the entire matrix: IgnoreEngine path categorizations, SARIF v2.1.0 generation, multi-pattern symbol tracing (`GET /buyers`), atomic writes with `.vibe/.lock` process locking, and automated execution testing across all 23 VS Code extension command handlers.
+>
+> Finally, we dogfood VIBE in our CI pipeline: GitHub Actions runs `vibe doctor` and `vibe guard` against our own monorepo to verify that our own packages maintain zero circular dependencies and zero architecture drift."*

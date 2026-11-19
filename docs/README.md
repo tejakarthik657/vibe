@@ -63,9 +63,9 @@ Whether you are preparing for a Staff-level technical interview, pitching to a s
 - **[`07-backend-engineering.md`](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/07-backend-engineering.md)**  
   *The life of a command in V8, Natural Language Argument Preprocessor, TypeScript AST traversal (`ts.forEachChild`), DFS 3-coloring cycle detection, reverse BFS blast radius, and multiplicative risk math.*
 - **[`08-api-design.md`](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/08-api-design.md)**  
-  *The CLI as an API: POSIX binary exit code contracts (`0` vs `1`), 25+ command catalog, subprocess JSON output streaming, and domain contract schemas (`DecisionRequest`, `DecisionResult`).*
+  *The CLI as an API: POSIX 4-state exit code contracts (`0` = ALLOW, `1` = REVIEW, `2` = BLOCK, `3` = ERROR), complete 29 command catalog across 10 domains, OASIS SARIF v2.1.0 output, subprocess JSON streaming, and domain contract schemas (`DecisionRequest`, `DecisionResult`).*
 - **[`09-frontend-architecture.md`](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/09-frontend-architecture.md)**  
-  *VS Code extension architecture, 4 reactive TreeDataProviders, why timer polling is an anti-pattern, OS kernel `FileSystemWatcher` events (16ms updates), and decoupled non-blocking child-process IPC.*
+  *VS Code extension architecture (v0.4.8), 4 reactive TreeDataProviders, 23 registered commands with dynamic CLI compatibility check, why timer polling is an anti-pattern, OS kernel `FileSystemWatcher` events (16ms updates), and decoupled non-blocking child-process IPC.*
 - **[`18-ai-engineering.md`](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/18-ai-engineering.md)**  
   *Why naive LLM wrappers fail, low temperature (0.1) determinism, strict JSON schema output, Graph-Augmented Generation (GAG) vs Vector RAG, Bayesian confidence calculus, and Groq LPU hardware acceleration.*
 
@@ -77,7 +77,7 @@ Whether you are preparing for a Staff-level technical interview, pitching to a s
 - **[`12-distributed-systems.md`](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/12-distributed-systems.md)**  
   *Why VIBE is an in-process modular monolith, the Three-State Circuit Breaker pattern (Closed/Open/Half-Open), exponential backoff with full randomized jitter, and strict ACID consistency.*
 - **[`13-testing-strategy.md`](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/13-testing-strategy.md)**  
-  *The zero-mock philosophy, synthetic multi-node circular dependency test fixtures, synthetic secret injection suites, and CI dogfooding.*
+  *The zero-mock philosophy, 13 automated test suite verifications, automated execution testing of all 23 VS Code extension command handlers, synthetic multi-node circular dependency test fixtures, synthetic secret injection suites, and CI dogfooding.*
 - **[`16-reliability-engineering.md`](file:///c:/Programming/Projects/05_Social-Impact/vibe-v1/vibe/docs/16-reliability-engineering.md)**  
   *Three-tier graceful degradation (Cloud LLM $\rightarrow$ Offline Rules $\rightarrow$ Atomic JSON $\rightarrow$ Reconstruct), syntax error fault isolation, RPO = 0 seconds, and RTO < 3 seconds.*
 

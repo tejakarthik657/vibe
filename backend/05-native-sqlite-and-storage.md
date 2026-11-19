@@ -116,14 +116,36 @@ insertMany(nodes); // 220x throughput improvement
 
 ---
 
-## 5. Handling Lock Contention: The `busy_timeout` Pattern
+## 5. Handling Lock Contention & Process Safety
 
-When two VIBE processes execute simultaneously (e.g., an IDE LSP extension and a CLI terminal command), write transactions can collide:
+When two VIBE processes execute simultaneously (e.g., an IDE LSP extension and a CLI terminal command), write transactions and state updates can collide:
 
-1. **Failure Mode**: SQLite immediately throws `SQLITE_BUSY: database is locked`.
-2. **Production Mitigation**: 
-   - Set `PRAGMA busy_timeout = 5000;`. SQLite's native C core automatically retries in a sleep-wait loop with random backoff for up to 5 seconds before erroring.
-   - For application-level transactions, wrap write operations with an exponential backoff decorator.
+1. **SQLite WAL `busy_timeout`**: 
+   - Configured with `PRAGMA busy_timeout = 5000;`. SQLite's native C core automatically retries in a sleep-wait loop with random backoff for up to 5 seconds before erroring.
+2. **Process Concurrency Locking (`.vibe/.lock`)**:
+   - The `VibeStore` acquires an exclusive lockfile descriptor before any state mutations:
+   ```typescript
+   private acquireLock(): void {
+     const lockPath = path.join(this.vibeDir, ".lock");
+     try {
+       this.lockFd = fs.openSync(lockPath, "wx");
+       fs.writeSync(this.lockFd, `${process.pid}\n${Date.now()}`);
+     } catch {
+       // Stale lock detection (PID check & 10s TTL)
+     }
+   }
+   ```
+3. **Atomic Writes via POSIX Rename & Fsync**:
+   - Never write directly to `state.json`. State is written to `state.json.tmp.<pid>`, flushed to physical disk with `fs.fsyncSync(fd)`, and atomically renamed via `fs.renameSync`:
+   ```typescript
+   fs.writeFileSync(tmpPath, JSON.stringify(this.state, null, 2), "utf-8");
+   const fd = fs.openSync(tmpPath, "r+");
+   fs.fsyncSync(fd);
+   fs.closeSync(fd);
+   fs.renameSync(tmpPath, this.statePath);
+   ```
+4. **Automated Schema Migrations with Backups**:
+   - When evolving state versions (e.g. adding requirement evidence fields), `VibeStore.migrate()` automatically creates a timestamped backup (`state.json.<timestamp>.bak`) before applying transactional schema transforms.
 
 ---
 

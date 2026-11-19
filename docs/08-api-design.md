@@ -20,60 +20,85 @@ Let's examine how VIBE's interface was designed for both human readability and m
 
 ---
 
-## 8.2 The Binary Exit Code Contract
-VIBE follows strict POSIX exit code conventions:
+## 8.2 The 4-State Exit Code Contract
+VIBE follows strict POSIX exit code conventions designed for zero ambiguity in Git pre-commit hooks and CI/CD pipelines:
 
 ```
 +-----------+----------------------+-----------------------------------------------+
-| Exit Code | Equivalent Status    | Meaning & System Action                       |
+| Exit Code | Action Verdict       | Meaning & System Action                       |
 +-----------+----------------------+-----------------------------------------------+
-| 0         | 200 OK               | Success. Zero violations, zero secrets leaked.|
+| 0         | ALLOW                | Clean / Safe. Zero violations or risk < 0.40. |
 |           |                      | Git pre-commit proceeds; CI builds pass.      |
 +-----------+----------------------+-----------------------------------------------+
-| 1         | 400 Bad Request /    | Policy or Security Violation. Secret found,   |
-|           | 403 Forbidden        | circular import detected, or constraint broken.|
+| 1         | REVIEW               | Review Required. Medium risk (>= 0.40, < 0.80)|
+|           |                      | or unreviewed dependencies. Warning emitted.  |
++-----------+----------------------+-----------------------------------------------+
+| 2         | BLOCK                | Hard Block. Critical finding, risk >= 0.80,   |
+|           |                      | secret leaked, or tenant boundary broken.     |
 |           |                      | Git pre-commit ABORTS immediately.            |
 +-----------+----------------------+-----------------------------------------------+
-| 2         | 500 Internal Error   | Fatal System Crash. Missing Node 22 runtime,  |
-|           |                      | unhandled I/O exception, or corrupt metadata. |
+| 3         | ERROR                | Fatal Execution Crash. Missing repo, corrupt  |
+|           |                      | state, or internal unhandled exception.       |
 +-----------+----------------------+-----------------------------------------------+
 ```
 
 ---
 
-## 8.3 The 25+ CLI Command Catalog (Organized by Domain)
+## 8.3 The Complete 29 CLI Command Catalog (Organized by Domain)
 
 ```
-VIBE COMMAND HIERARCHY
-├── 1. Governance & Entity Management
-│   ├── vibe req add "<text>"              (Register business/technical requirement)
-│   ├── vibe req list                      (List tracked requirements)
-│   ├── vibe adr add "<title>" -c "<ctx>"  (Register Architectural Decision Record)
-│   ├── vibe adr list                      (List accepted and superseded ADRs)
-│   ├── vibe con add "<rule>" -t "<glob>"  (Register architectural constraint)
-│   ├── vibe con list                      (List active constraints)
-│   └── vibe task add "<title>"            (Register task linked to requirement/ADR)
+VIBE COMMAND HIERARCHY (All 29 Commands across 10 Domains)
+├── 1. Project Lifecycle & Setup
+│   ├── vibe init [--name <name>]          (Initialize .vibe/ & create safe .gitignore)
+│   ├── vibe scan [-f text|json]           (Parse AST, build DAG, verify requirements)
+│   ├── vibe status [-f text|json]         (Terminal dashboard of requirements & ADRs)
+│   ├── vibe onboard                       (Interactive architectural onboarding walkthrough)
+│   ├── vibe bootstrap [--preset <name>]   (Inject foundational constraint & ADR presets)
+│   └── vibe config get|set|show           (Manage config & mask API tokens securely)
 │
-├── 2. Intelligence & Code Reasoning
-│   ├── vibe scan                          (Parse AST, build DAG, detect cycles)
-│   ├── vibe doctor                        (All-in-one health, drift, and cycle audit)
-│   ├── vibe architect "<proposal>"        (Hybrid Groq LLM + Rules proposal evaluation)
-│   ├── vibe explain "<file>"              (Contextual dependency & coupling explainer)
-│   └── vibe why "<decision-id>"           (Inspect historical decision audit trail)
+├── 2. Architecture Governance & Drift
+│   ├── vibe architect set -f "<stack>"    (Declare authorized production frameworks & DBs)
+│   ├── vibe architect show                (Show declared architecture)
+│   └── vibe drift [-f text|json]          (Audit actual AST imports against declared stack)
 │
-├── 3. Safety, Security & Blast Radius
-│   ├── vibe guard --staged                (Scan staged diff for secrets and entropy)
-│   ├── vibe impact --staged               (Calculate BFS blast radius of staged changes)
-│   └── vibe checkpoint save|restore       (Create or restore project state snapshots)
+├── 3. Requirements Engineering & Evidence Verification
+│   ├── vibe requirement add "<text>"     (Register functional/security requirement)
+│   ├── vibe requirement link <id> <file> (Bind requirement to source files/routers)
+│   └── vibe requirement list             (List requirements with live verification status)
 │
-├── 4. Persistence & Configuration
-│   ├── vibe config get|set|show           (Manage config & mask credentials)
-│   └── vibe migrate-storage --to <type>   (Bidirectional SQLite <-> JSON migration)
+├── 4. Architectural Decision Records (ADRs) & Overrides
+│   ├── vibe decision add "<title>"        (Record ADR with context, choice, and status)
+│   ├── vibe decision list                 (List accepted, proposed, and superseded ADRs)
+│   ├── vibe decisions                     (Inspect immutable audit history of AI evaluations)
+│   └── vibe override <id> -r "<reason>"   (Senior override for BLOCK; auto-logs an ADR)
 │
-└── 5. DevOps & Automation
-    ├── vibe hooks install|remove          (Install/uninstall Git pre-commit hook)
-    ├── vibe onboard                       (Interactive 60-second onboarding wizard)
-    └── vibe test-providers                (Diagnostic latency test for LLM & Rules)
+├── 5. Architectural Constraints
+│   ├── vibe constraint add "<text>" -s    (Declare critical/warning boundary invariants)
+│   └── vibe constraint list               (List active architectural constraints)
+│
+├── 6. Task Tracking
+│   ├── vibe task add "<title>" -r <req>   (Register task linked to requirement)
+│   ├── vibe task list                     (List active engineering tasks)
+│   └── vibe task update <id> [status]     (Update status: todo, in_progress, done)
+│
+├── 7. Guard, Pre-Commit & CI/CD Gates
+│   ├── vibe guard [-b <base>] [-f sarif]  (Pre-commit gate: blast radius, secrets, scope)
+│   └── vibe install-hooks                 (Install automated Git pre-commit hook)
+│
+├── 8. Diagnostics & Code Health
+│   └── vibe doctor [-f text|json|sarif]   (Exhaustive audit: test runners, tenancy, drift)
+│
+├── 9. Graph Intelligence, Tracing & AI Context
+│   ├── vibe explain [target]              (Contextual module role & coupling explainer)
+│   ├── vibe why <file>                    (Explain why a file exists, callers, ADRs, tests)
+│   ├── vibe trace <symbol>                (Trace functions, classes, and HTTP routes)
+│   ├── vibe impact <file> [-d <depth>]    (Calculate BFS blast radius & downstream consumers)
+│   └── vibe context "<task>" -o AGENTS.md (Generate scoped AI agent context document)
+│
+└── 10. Snapshots, Storage & Benchmarks
+    ├── vibe checkpoint create|list|restore (Atomic state graph snapshots)
+    ├── vibe test-providers                (Benchmark rules vs Groq LLM reasoning)
+    └── vibe migrate-storage               (Upgrade JSON storage to embedded SQLite)
 ```
 
 ---

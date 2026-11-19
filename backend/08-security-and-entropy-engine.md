@@ -132,6 +132,26 @@ flowchart LR
 
 ---
 
+## 5. Secret Redaction & Ignore Engine Architecture
+
+### 5.1 Comprehensive In-Memory Secret Redaction (`redactSecrets`)
+Before sending any diff or code chunk to an AI inference provider or writing to audit logs, VIBE applies deterministic regex masking:
+- AWS Access Keys (`AKIA...` $\to$ `[REDACTED_AWS_KEY]`)
+- Groq API Keys (`gsk_...` $\to$ `[REDACTED_GROQ_KEY]`)
+- GitHub Tokens (`ghp_...` $\to$ `[REDACTED_GITHUB_TOKEN]`)
+- Private Keys (`-----BEGIN RSA PRIVATE KEY-----` $\to$ `[REDACTED_PRIVATE_KEY]`)
+- Generic Passwords / API Keys (`api_key = "..."` $\to$ `[REDACTED_KEY]`)
+
+This guarantees zero secrets can ever leak into terminal logs, LLM prompts, or SQLite audit histories.
+
+### 5.2 The Unified `IgnoreEngine`
+Untracked dependency folders (`.venv/`, `node_modules/`, `dist/`, `__pycache__/`) can inject thousands of third-party files into git diffs. VIBE's `IgnoreEngine`:
+1. Combines `.gitignore`, `.vibeignore`, and built-in production rules.
+2. Accurately categorizes all paths into `source`, `test`, `config`, `dependency`, `generated`, and `ignored`.
+3. Normalizes Windows backslashes (`\`) to POSIX forward slashes (`/`), guaranteeing cross-platform ignore parity.
+
+---
+
 ## 5. Interview Defense: Security Engineering
 
 **Q: Why is Shannon entropy superior to standard regex for API key detection?**

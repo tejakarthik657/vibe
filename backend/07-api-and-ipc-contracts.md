@@ -88,14 +88,21 @@ When acting as an IDE background service, VIBE communicates via bidirectional **
 
 ## 3. Standard Exit Code Semantics
 
-For terminal and CI pipeline consumption, VIBE maps backend execution states to standard POSIX-compliant exit codes:
+For terminal, git pre-commit hooks, and CI/CD pipeline consumption, VIBE maps backend execution states to standard 4-state POSIX-compliant exit codes:
 
-| Exit Code | Semantic Meaning | CI Pipeline Action |
-| :---: | :--- | :--- |
-| **`0`** | **Success / Clean** — No errors or violations detected. | Pipeline passes successfully. |
-| **`1`** | **Violations Detected** — One or more rules with severity `error` failed. | Pipeline fails; pull request blocked. |
-| **`2`** | **Configuration Error** — Malformed `.vibe.json`, invalid flags, or missing files. | Pipeline halts; configuration must be corrected. |
-| **`3`** | **Engine / Runtime Error** — SQLite corruption, out-of-memory, unhandled crash. | SRE alert triggered. |
+| Exit Code | Action | Semantic Meaning & Invariant | CI Pipeline / Git Action |
+| :---: | :---: | :--- | :--- |
+| **`0`** | **`ALLOW`** | **Clean / Safe** — No findings or low evidence risk ($< 0.40$). | Pipeline passes; pre-commit allows commit. |
+| **`1`** | **`REVIEW`** | **Review Recommended** — Moderate risk ($\ge 0.40, < 0.80$) or dependency warnings. | Pipeline generates PR review request; pre-commit prompts for confirmation. |
+| **`2`** | **`BLOCK`** | **Hard Block** — Critical findings, leaked secrets, broken tenant boundaries, or evidence weight $\ge 0.80$. | Pipeline FAILS; pre-commit aborts commit immediately. |
+| **`3`** | **`ERROR`** | **Execution / Config Error** — Missing repository, corrupt state, or internal failure. | Pipeline fails with execution error. |
+
+### 3.1 SARIF v2.1.0 Protocol for CI/CD Gates
+When invoked with `-f sarif`, VIBE emits standard OASIS SARIF v2.1.0 schema logs that stream directly into GitHub Security, GitLab SAST, or Azure DevOps:
+```bash
+vibe guard -b ci-merge-base -f sarif > vibe-report.sarif
+vibe doctor -f sarif > doctor-report.sarif
+```
 
 ---
 

@@ -9,8 +9,8 @@
 Writing code is only half the battle. A system is not complete until a stranger anywhere in the world can open their terminal or IDE, run an install command, and have it work seamlessly on their machine.
 
 VIBE is distributed through two major public developer channels:
-1. **The Global NPM Registry**: Published as **`vibe-dev`** (v0.4.0) for command-line execution and CI/CD pipelines.
-2. **The Visual Studio Code Marketplace**: Published as **`devframes.vibe-vscode-extension`** (v0.4.3) for VS Code and Cursor users worldwide.
+1. **The Global NPM Registry**: Published as **`vibe-dev`** (v0.4.8) for command-line execution and CI/CD pipelines.
+2. **The Visual Studio Code Marketplace**: Published as **`devframes.vibe-vscode-extension`** (v0.4.8) for VS Code and Cursor users worldwide.
 
 Let's look at the release pipeline that makes this possible.
 
@@ -75,7 +75,7 @@ cd packages/vscode-extension
 npx @vscode/vsce package
 npx @vscode/vsce publish --pat <MARKETPLACE_TOKEN>
 ```
-The published extension is live on the Visual Studio Marketplace: `devframes.vibe-vscode-extension` (v0.4.3).
+The published extension is live on the Visual Studio Marketplace: `devframes.vibe-vscode-extension` (v0.4.8).
 
 ---
 
@@ -137,9 +137,9 @@ When an interviewer asks: *"How did you package, deploy, and distribute this sys
 >
 > In the monorepo, I used TypeScript Project References to guarantee strict topological build ordering across all 7 packages. 
 >
-> For command-line execution and CI/CD pipelines, I packaged and published the CLI globally to the npm registry as `vibe-dev` (v0.4.0).
+> For command-line execution and CI/CD pipelines, I packaged and published the CLI globally to the npm registry as `vibe-dev` (v0.4.8).
 >
-> For developer ergonomics, I packaged the VS Code client into an optimized VSIX bundle using `@vscode/vsce` and published it to the official Visual Studio Marketplace as `devframes.vibe-vscode-extension` (v0.4.3), configuring `.vscodeignore` to keep the download size under 1.5MB.
+> For developer ergonomics, I packaged the VS Code client into an optimized VSIX bundle using `@vscode/vsce` and published it to the official Visual Studio Marketplace as `devframes.vibe-vscode-extension` (v0.4.8), configuring `.vscodeignore` to keep the download size under 1.5MB.
 >
 > For automated enforcement, I engineered `vibe hooks install` to generate an executable `.git/hooks/pre-commit` script that runs staged secret scanning and impact checks in under 110ms, automatically setting POSIX 755 execution permissions.
 >

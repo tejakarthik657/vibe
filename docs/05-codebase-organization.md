@@ -76,10 +76,28 @@ This is the beating heart of VIBE. It contains **zero AI** and **zero network ca
 
 ### 7. `doctor.ts` (The Comprehensive Diagnostic Engine)
 - **Role**: All-in-one health auditor (`vibe doctor`).
-- **How it works**: Combines the graph engine, constraint engine, and storage layer to compute an architectural health score, flag circular imports, identify orphaned files, and check database migration status.
+- **How it works**: Combines the graph engine, constraint engine, multi-framework test runner detectors (`pytest`, `Jest`, `Vitest`, `JUnit`, `Go`, `Cypress`, `Playwright`), and evidence-based requirement verifier (`verifyRequirement`).
 
-### 8. `context.ts` (The AI Context Packager)
-- **Role**: Compresses repository state into token-efficient context packs (`vibe context`) designed for external AI coding tools (Claude, Cursor, ChatGPT).
+### 8. `ignore.ts` (The Unified Ignore Engine)
+- **Role**: Merges `.gitignore`, `.vibeignore`, and default production ignore rules.
+- **How it works**: Evaluates file paths, normalizes Windows backslashes (`\`) to forward slashes (`/`), and categorizes every file into `source`, `test`, `config`, `dependency`, `generated`, and `ignored`, preventing untracked dependencies (`.venv`, `node_modules`) from polluting git diffs.
+
+### 9. `sarif.ts` (OASIS SARIF v2.1.0 Generator)
+- **Role**: Converts Guard and Doctor diagnostic findings into standard SARIF v2.1.0 logs for native GitHub Security / CodeQL tab integration.
+
+### 10. `trace.ts` & `explain.ts` (Symbol Tracing & Explainability Engine)
+- **Role**: Multi-pattern symbol tracing and file explainability.
+- **How it works**: Traces dotted FQNs (`app.core.deps.get_current_user`), HTTP routes (`GET /buyers`), classes, callers, and verifying tests. Normalizes relative and Windows absolute paths.
+
+### 11. `architecture.ts` (Declared Architecture & Drift Engine)
+- **Role**: Records authorized frameworks and persistence layers, supporting multi-word names like `Voyage AI`. Calculates architecture drift against actual AST imports.
+
+### 12. `store.ts` (Atomic State Management & Schema Migrations)
+- **Role**: The high-reliability state store.
+- **How it works**: Performs atomic `.tmp` writes with `fsync` and atomic rename, acquires `.vibe/.lock` to prevent process collisions, and automates schema migrations with timestamped `.bak` files.
+
+### 13. `context.ts` (The AI Context Packager)
+- **Role**: Compresses repository state into token-efficient context packs (`vibe context` $\to$ `AGENTS.md`) designed for external AI coding tools (Claude, Cursor, ChatGPT).
 
 ---
 
@@ -129,15 +147,15 @@ This package contains **zero external runtime dependencies**. It defines the uni
 
 ## 5.8 Detailed Walkthrough: `packages/cli/src/` (The Developer Interface)
 
-- `index.ts`: Entrypoint script. Executes the **Natural Language Argument Preprocessor** (re-mapping shorthand aliases like `vibe req add` $\rightarrow$ `vibe requirement add`) and registers Commander commands.
-- `commands/*.ts`: 21 modular command implementations (`init.ts`, `scan.ts`, `guard.ts`, `impact.ts`, `architect.ts`, `doctor.ts`, `why.ts`, `hooks.ts`, etc.).
+- `index.ts`: Entrypoint script. Executes the **Natural Language Argument Preprocessor** (re-mapping shorthand aliases like `vibe req add` $\rightarrow$ `vibe requirement add`), Levenshtein typo-correction suggestions, and registers all 29 Commander commands across 10 functional domains.
+- `commands/*.ts`: 29 modular command implementations (`init.ts`, `scan.ts`, `status.ts`, `onboard.ts`, `bootstrap.ts`, `config.ts`, `architect.ts`, `requirement.ts`, `decision.ts`, `decisions.ts`, `override.ts`, `constraint.ts`, `task.ts`, `guard.ts`, `doctor.ts`, `explain.ts`, `why.ts`, `trace.ts`, `impact.ts`, `context.ts`, `checkpoint.ts`, `test-providers.ts`, `migrate-storage.ts`, `hooks.ts`).
 - `hooks.ts`: Installs and uninstalls the executable Git pre-commit hook script into `.git/hooks/pre-commit`.
 
 ---
 
 ## 5.9 Detailed Walkthrough: `packages/vscode-extension/src/` (The IDE Client)
 
-- `extension.ts`: Registers the extension lifecycle, sets up 4 `TreeDataProvider` classes (Requirements, ADRs, Constraints, Tasks), registers the OS-level `FileSystemWatcher` on `**/.vibe/*.{json,db}`, and executes non-blocking CLI subprocesses via `child_process.execFile`.
+- `extension.ts`: Registers the extension lifecycle, sets up 4 `TreeDataProvider` classes (Requirements, ADRs, Constraints, Tasks), registers the OS-level `FileSystemWatcher` on `**/.vibe/*.{json,db}`, queries the runtime CLI version dynamically (`${cliCmd} --version`), prints compatibility status, and registers all 23 VS Code Command Palette actions with automated execution validation.
 
 ---
 

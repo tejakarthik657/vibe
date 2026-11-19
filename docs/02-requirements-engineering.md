@@ -54,12 +54,16 @@ Let's dissect the exact requirements that shaped VIBE's architecture.
 - **Why it matters**: Combines nuanced natural language understanding of ADRs with rock-solid offline deterministic safety nets.
 
 ### FR-09: Automated Git Pre-Commit Hook Gatekeeper
-- **Requirement**: The system must install an executable git hook that intercepts `git commit` and aborts the commit (exit code `1`) if violations or secrets are detected (`vibe hooks install`).
-- **Why it matters**: A rule that isn't enforced is just a suggestion. The hook turns architectural guidelines into an unbreakable gate.
+- **Requirement**: The system must install an executable git hook that intercepts `git commit` and aborts the commit (exit code `2` = `BLOCK`) if critical violations, blast radius $\ge 0.80$, or secrets are detected (`vibe install-hooks`). Warnings and reviews return exit code `1` (`REVIEW`), while clean passes return exit code `0` (`ALLOW`).
+- **Why it matters**: A rule that isn't enforced is just a suggestion. The hook turns architectural guidelines into an unbreakable, deterministic gate.
 
-### FR-10: Real-Time Reactive IDE TreeViews
-- **Requirement**: The system must render live reactive trees in VS Code for Requirements, Decisions, Constraints, and Tasks without polling loops.
+### FR-10: Real-Time Reactive IDE TreeViews & 23 Command Handlers
+- **Requirement**: The system must render live reactive trees in VS Code for Requirements, Decisions, Constraints, and Tasks without polling loops, and provide 23 registered Command Palette actions with dynamic runtime compatibility checks.
 - **Why it matters**: Developers should see their architectural health in their editor sidebar in real time as they type.
+
+### FR-11: Evidence-Based Requirements & Tenancy Verification
+- **Requirement**: The system must audit requirements against real code artifacts (inspecting router prefixes, `get_current_user` dependencies, `org_id` scoped queries, and multi-tenant test suites), dynamically assigning status (`verified`, `at_risk`, `active`).
+- **Why it matters**: Replaces superficial checkbox compliance with verifiable code and test evidence.
 
 ---
 

@@ -131,6 +131,16 @@ $$H = \text{SHA-256}(\text{file\_content}) \oplus \text{SHA-256}(\text{parser\_v
 3. If a match is found (Cache Hit), the AST is deserialized directly in $< 1\text{ms}$.
 4. If missing (Cache Miss), the parser executes, and the AST is persisted to SQLite with its hash.
 
+### 4.1 Multi-Language Route & Router Prefix Stitching
+
+In modern microservices and fullstack codebases, routers are modularized (e.g. FastAPI `router = APIRouter(prefix="/buyers")` combined with route decorators like `@router.get("")`). 
+
+VIBE's static analysis engine resolves these into fully qualified canonical symbols:
+1. **Module Router Prefix**: Extracts `prefix="/buyers"` from `APIRouter` initializations.
+2. **Method Decorators**: Parses `@router.get("")`, `@router.post("/{id}")`, etc.
+3. **Canonical Symbol Construction**: Normalizes them to `route:GET:/buyers` and `route:POST:/buyers/{id}`, linking definition files directly to route trace queries.
+4. **Dependency Injection & Scope Audit**: Inspects parameters like `current_user: User = Depends(get_current_user)` and queries filtering on `Buyer.org_id == current_user.org_id`, enabling automated verification of multi-tenant security requirements.
+
 ---
 
 ## 5. Senior Interview Questions on ASTs

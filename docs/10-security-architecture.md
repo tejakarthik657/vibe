@@ -152,4 +152,4 @@ When an interviewer asks: *"How did you approach security, secret scanning, and 
 >
 > For AI security, I protected against indirect prompt injection—where malicious code comments attempt to hijack LLM evaluation logic. I isolated system instructions in the LLM's system role and sandboxed the user's code as a stringified, passive JSON data payload with explicit safety directives forbidding the model from executing instructions embedded in code comments.
 >
-> Finally, all decisions are enforced at the Git pre-commit level via exit code 1, ensuring that secrets and violations are blocked on the local machine before any data is committed or transmitted."*
+> In addition, all diffs pass through our `redactSecrets` filter before being submitted to any AI provider or SQLite audit record, stripping AWS, Groq, GitHub, and private keys. Dependencies are isolated by the `IgnoreEngine`, and all decisions are enforced at the Git pre-commit level via strict exit code 2 (BLOCK), ensuring that secrets and critical violations are blocked on the local machine before any data is committed or transmitted."*

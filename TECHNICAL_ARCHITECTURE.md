@@ -1,7 +1,7 @@
 # VIBE: Technical Engineering Documentation & Master Architectural Specification
 ### Autonomous Compiler-Level Architectural Governance & Decision Intelligence System
 **Project Name**: VIBE (Vibe Intent & Boundary Engine)  
-**Version**: `0.4.0` (CLI / Core Engine / VS Code Extension)  
+**Version**: `0.4.8` (CLI / Core Engine / VS Code Extension)  
 **Author**: Lead Systems Architect & Project Owner  
 **Repository**: `vibe` (Monorepo with 7 Decoupled Packages)
 

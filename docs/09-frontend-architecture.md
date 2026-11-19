@@ -17,7 +17,7 @@ However, even though extensions run in a separate process, **all extensions shar
 In VIBE, our frontend design had one primary directive:
 > **"Zero main-thread blocking. Zero timer polling loops. 100% reactive to filesystem events."**
 
-Let's examine how the VIBE VS Code extension (`devframes.vibe-vscode-extension` v0.4.3) achieves silky-smooth 60 FPS performance.
+Let's examine how the VIBE VS Code extension (`devframes.vibe-vscode-extension` v0.4.8) achieves silky-smooth 60 FPS performance, dynamic CLI compatibility checks, and full command coverage across 23 Command Palette actions.
 
 ---
 

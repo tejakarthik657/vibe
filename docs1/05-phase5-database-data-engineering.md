@@ -125,11 +125,13 @@ this.db.exec(`
 - **Readers Never Block Writers**: The VS Code extension reads state without blocking CLI writes.
 - **Writers Never Block Readers**: CLI writes append to sequential `-wal` files without locking read queries.
 
-### 30.2 Atomic JSON Fallback Engine (`json-adapter.ts`)
-To prevent "torn-write" file corruption on runtimes $< 22$:
-1. Write payload to temporary file: `.vibe/state.json.tmp.<uuid>`.
-2. Flush descriptors to physical disk (`fsync`).
-3. Atomic POSIX rename (`fs.rename`).
+### 30.2 Atomic JSON Fallback Engine & Concurrency Locking (`store.ts`)
+To prevent "torn-write" file corruption and multi-process write interleaving:
+1. **Exclusive Lockfile**: Acquires `.vibe/.lock` using `O_CREAT | O_EXCL` with stale lock detection (10-second TTL).
+2. **Temporary File Write**: Write payload to `.vibe/state.json.tmp.<pid>`.
+3. **Descriptor Sync**: Flush descriptors to physical disk (`fs.fsyncSync`).
+4. **Atomic Rename**: Atomic POSIX rename via `fs.renameSync`.
+5. **Auto Schema Migration**: Backs up state to `.vibe/state.json.<timestamp>.bak` before applying version migrations.
 
 ---
 

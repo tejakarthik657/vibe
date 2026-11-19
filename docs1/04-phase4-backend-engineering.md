@@ -58,9 +58,13 @@ Deletions are weighted $2\times$ because removing code breaks downstream caller 
 *REST, RPC, CLI endpoint design, execution parameters, status codes.*
 
 ### 20.1 CLI as an API: POSIX Exit Code Contracts
-- **Exit Code `0`**: Operation successful. Zero violations, zero secrets leaked. Git pre-commit proceeds.
-- **Exit Code `1`**: Policy or security violation. Secret leaked or constraint broken. Git pre-commit **aborts immediately**.
-- **Exit Code `2`**: Fatal system error. Missing Node 22 runtime or corrupt metadata.
+- **Exit Code `0` (`ALLOW`)**: Operation successful. Zero critical violations, zero secrets leaked, risk $< 0.40$. Git pre-commit proceeds.
+- **Exit Code `1` (`REVIEW`)**: Review recommended. Moderate risk ($\ge 0.40, < 0.80$) or dependency changes. Pre-commit prompts for confirmation.
+- **Exit Code `2` (`BLOCK`)**: Policy or security violation. Secret leaked, blast radius $\ge 0.80$, or constraint broken. Git pre-commit and CI pipelines **abort immediately**.
+- **Exit Code `3` (`ERROR`)**: Fatal system error. Missing Node runtime, corrupt metadata, or unhandled I/O exception.
+
+### 20.1.1 OASIS SARIF v2.1.0 Standard Log Output
+For automated CI/CD security scanning, passing `-f sarif` emits standard OASIS SARIF v2.1.0 logs directly into GitHub Security, GitLab SAST, or Azure DevOps.
 
 ### 20.2 Natural Language Argument Preprocessor
 Before arguments reach Commander.js, `packages/cli/src/index.ts` runs an in-memory token normalization pass:

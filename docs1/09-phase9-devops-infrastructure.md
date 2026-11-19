@@ -70,8 +70,8 @@ jobs:
 *Decentralized distribution on public registries.*
 
 VIBE is distributed through public developer registries:
-1. **NPM Registry**: Published as `vibe-dev` (v0.4.0).
-2. **Visual Studio Marketplace**: Published as `devframes.vibe-vscode-extension` (v0.4.3).
+1. **NPM Registry**: Published as `vibe-dev` (v0.4.8).
+2. **Visual Studio Marketplace**: Published as `devframes.vibe-vscode-extension` (v0.4.8).
 
 ---
 

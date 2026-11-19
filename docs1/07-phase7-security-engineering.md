@@ -57,6 +57,12 @@ $$H(X) = -\sum_{i=1}^{n} P(x_i) \log_2 P(x_i)$$
 - Groq API Key: `gsk_[a-zA-Z0-9]{48,64}`
 - Private RSA/ECDSA Key Headers: `-----BEGIN [A-Z ]+ PRIVATE KEY-----`
 
+### 49.3 Automatic In-Memory Secret Redaction (`redactSecrets`)
+Before sending any diff chunk to an external AI provider or writing to disk audit trails, VIBE applies deterministic regex masking (`redactSecrets`), replacing AWS, GitHub, Groq, and private key strings with `[REDACTED_*]` placeholders.
+
+### 49.4 The `IgnoreEngine` Security Perimeter
+External dependency caches and untracked environments (`.venv/`, `node_modules/`, `dist/`, `.env`) are automatically excluded from git diffs, eliminating false-positive token triggers on third-party libraries.
+
 ---
 
 ## 50. AI Security: Indirect Prompt Injection Defense
@@ -77,4 +83,4 @@ When passing source code to Groq LPUs, VIBE encapsulates untrusted code diffs in
 ## 52. Identity & Access Management
 *User roles, tenant isolation, least privilege, permission policies.*
 
-Because VIBE is local-first, permissions mirror operating system file ACLs. The Git pre-commit hook acts as the gatekeeper, denying commit permissions (exit code `1`) when policy or security violations are detected.
+Because VIBE is local-first, permissions mirror operating system file ACLs. The Git pre-commit hook acts as the gatekeeper, denying commit permissions (exit code `2` = `BLOCK`) when policy or security violations are detected. Clean runs return exit code `0` (`ALLOW`), while warnings return `1` (`REVIEW`).

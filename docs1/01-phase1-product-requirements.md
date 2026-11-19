@@ -59,7 +59,7 @@ To establish an autonomous, compiler-backed control plane for modern software de
 
 ### 2.3 User Stories & Acceptance Criteria
 - *Story*: "As a developer, I want my pre-commit hook to block accidental API key commits so that I don't expose credentials to GitHub."
-  - *Acceptance Criterion*: Staging an AWS secret key (`AKIA...`) and running `git commit` aborts the commit with exit code `1` and prints the exact file and line number within 110ms.
+  - *Acceptance Criterion*: Staging an AWS secret key (`AKIA...`) and running `git commit` aborts the commit with exit code `2` (`BLOCK`) and prints the exact file and line number within 110ms. Warnings exit with `1` (`REVIEW`) and clean runs with `0` (`ALLOW`).
 - *Story*: "As a tech lead, I want to forbid UI components from importing backend database drivers."
   - *Acceptance Criterion*: Running `vibe con add "No direct DB calls from UI" -t "src/components/**"` causes any commit with `import { pg } from 'pg'` in `src/components/` to be blocked.
 

@@ -154,9 +154,11 @@ sequenceDiagram
 
 ## 3.4 Key Architectural Invariants (The Non-Negotiable Rules)
 1. **Zero Circular Monorepo Imports**: Monorepo packages can only import downwards in the dependency tree. `decision-core` cannot import `core`; `core` cannot import `cli`.
-2. **Deterministic Truth Trumps AI Opinion**: An LLM can never override a compiler-proven fact. If the TypeScript compiler proves that a circular import exists, an LLM saying *"it looks fine to me"* is mathematically rejected by our confidence calculus.
-3. **Non-Blocking IDE Extension**: The VS Code extension host must never run heavy AST graph traversals on the main thread. It spawns CLI child processes asynchronously via `child_process.execFile`, keeping the editor running smoothly at 60 FPS.
-4. **Resilient Local Storage**: The system must persist state without external database servers. Node 22 native SQLite provides enterprise-grade ACID transactions directly in-process.
+2. **Deterministic Truth Trumps AI Opinion**: An LLM can never override a compiler-proven fact. If the AST parser proves that a circular import or secret exists, an LLM saying *"it looks fine to me"* is mathematically rejected by our confidence calculus.
+3. **Strict Policy Action Invariant**: If highest evidence weight $\ge 0.80$ or any critical check fails, the action strictly resolves to `BLOCK` (`exit code 2`). Medium risk resolves to `REVIEW` (`exit code 1`). Clean diffs resolve to `ALLOW` (`exit code 0`).
+4. **IgnoreEngine Boundary**: Dependencies (`.venv/`, `node_modules/`, `dist/`, caches) are cleanly isolated by the `IgnoreEngine` and never counted as application source diffs.
+5. **Non-Blocking IDE Extension**: The VS Code extension host must never run heavy AST graph traversals on the main thread. It spawns CLI child processes asynchronously via `child_process.exec`, keeping the editor running smoothly at 60 FPS with dynamic runtime compatibility checks.
+6. **Resilient Local Storage**: The system must persist state without external database servers. Node 22 native SQLite provides enterprise-grade ACID transactions directly in-process, complemented by atomic JSON writes (`fsync`) and `.vibe/.lock` process concurrency safety.
 
 ---
 

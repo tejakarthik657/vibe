@@ -75,7 +75,7 @@ To explain VIBE to anyone—an interviewer, a CTO, or a fellow developer—use t
 1. **The Passenger**: The developer or AI agent attempting to commit code.
 2. **The Scanner (Deterministic Layer)**: The airport metal detector. It doesn't guess; it knows physics. It scans the TypeScript AST, detects circular imports via DFS 3-coloring, flags high-entropy secret tokens, and measures downstream blast radius. Zero network, pure math.
 3. **The Passport Control (Policy Layer)**: Evaluates intent. It checks whether your change conforms to active Architectural Decision Records (ADRs). It asks: *"You said in ADR-001 that we use PostgreSQL. Why are you adding MongoDB driver imports?"*
-4. **The Gatekeeper**: If everything is clean, the commit passes silently (exit code `0`). If a violation or secret is detected, the gate slams shut (exit code `1`), aborting the git commit and printing the exact file, line number, and command needed to fix it.
+4. **The Gatekeeper**: If everything is clean, the commit passes silently (exit code `0` = `ALLOW`). If review is recommended, it warns (exit code `1` = `REVIEW`). If a critical violation or secret is detected, the gate slams shut (exit code `2` = `BLOCK`), aborting the git commit and printing the exact file, line number, and command needed to fix it. Errors exit with code `3`.
 
 ---
 

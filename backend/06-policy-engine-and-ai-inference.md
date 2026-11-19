@@ -103,6 +103,22 @@ flowchart TD
 2. **Circuit Breaker**: If 3 consecutive requests fail (due to network timeout, 429 rate limit, or invalid API key), the circuit breaker trips, disabling AI rules and allowing deterministic AST rules to finish uninterrupted.
 3. **Strict JSON Schema Enforcement**: VIBE passes a JSON Schema definition to the provider (`response_format: { type: "json_object" }`), ensuring responses parse directly into domain violation entities.
 
+### 4.1 Strict Policy Invariants & Confidence Mathematics
+
+A fatal failure mode in hybrid AI developer tools is "allow with warnings" when an AI model outputs low confidence on high-risk diffs. VIBE enforces a strict mathematical policy invariant in `packages/policy-engine/src/policy.ts`:
+
+$$\text{Action} = \begin{cases}
+\text{BLOCK} & \text{if } \max(\text{EvidenceWeight}) \ge 0.80 \lor \exists \text{ Critical Finding} \\
+\text{REVIEW} & \text{if } \text{Risk} \ge 0.40 \lor \text{Confidence} < 0.60 \\
+\text{ALLOW} & \text{if } \text{Risk} < 0.40 \land \text{No Critical Findings}
+\end{cases}$$
+
+Under this invariant:
+- **`[FAIL] risk 1.00 => Action: ALLOW` is mathematically impossible.**
+- Critical findings (secret exposure, blast radius $\ge 25$ files, broken tenant boundaries) strictly resolve to `BLOCK` (`exit code 2`).
+- Medium scope changes or unreviewed dependencies resolve to `REVIEW` (`exit code 1`).
+- The terminal output, exit code, and SQLite decision audit trail always agree 100%.
+
 ---
 
 ## 5. Interview Defense: AI Architecture
